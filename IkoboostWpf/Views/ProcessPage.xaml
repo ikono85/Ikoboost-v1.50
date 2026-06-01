@@ -1,0 +1,45 @@
+<Page x:Class="IkoboostWpf.Views.ProcessPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="{DynamicResource BackgroundBrush}"
+      Title="{DynamicResource Processes.Title}">
+
+  <DockPanel Margin="24">
+
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+<TextBlock Text="{DynamicResource Processes.Title}" FontSize="22" FontWeight="SemiBold"
+                 Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+
+      <StackPanel Orientation="Horizontal">
+        <TextBox x:Name="SearchBox" Width="220" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                 Tag="{DynamicResource Common.SearchProcesses}"/>
+        <Button Content="{Binding AutoRefreshButtonText}"
+                Command="{Binding ToggleAutoRefreshCommand}"
+                Style="{StaticResource PrimaryButtonStyle}"
+                Margin="8,0,0,0"/>
+      </StackPanel>
+    </StackPanel>
+
+    <DataGrid x:Name="ProcessesGrid"
+              ItemsSource="{Binding Processes}"
+              SelectedItem="{Binding SelectedProcess}"
+              IsReadOnly="True"
+              PreviewMouseRightButtonDown="ProcessesGrid_PreviewMouseRightButtonDown"
+              LoadingRow="ProcessesGrid_LoadingRow">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="PID"         Binding="{Binding Pid}"         Width="60"/>
+        <DataGridTextColumn Header="{DynamicResource Common.Name}" Binding="{Binding Name}"        Width="170"/>
+        <DataGridTextColumn Header="{DynamicResource Processes.CpuColumn}"
+                            Binding="{Binding CpuPercent, StringFormat='{}{0:F1}'}"
+                            Width="70"/>
+        <DataGridTextColumn Header="{DynamicResource Processes.RamColumn}"
+                            Binding="{Binding MemoryMb}"
+                            Width="80"/>
+        <DataGridTextColumn Header="{DynamicResource Processes.Priority}" Binding="{Binding Priority}"    Width="110"/>
+        <DataGridTextColumn Header="{DynamicResource Common.Description}" Binding="{Binding Description}" Width="*"/>
+        <DataGridTextColumn Header="{DynamicResource Processes.Publisher}" Binding="{Binding Publisher}" Width="150"/>
+      </DataGrid.Columns>
+    </DataGrid>
+
+  </DockPanel>
+</Page>

@@ -1,0 +1,113 @@
+<Window x:Class="IkoboostWpf.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:IkoboostWpf.Views"
+        Title="Ikoboost" Height="700" Width="1100"
+        MinHeight="600" MinWidth="900"
+        Style="{StaticResource WindowStyle}"
+        WindowStartupLocation="CenterScreen">
+
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="200"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <MediaElement x:Name="VideoBackground"
+                  Grid.ColumnSpan="2"
+                  LoadedBehavior="Manual"
+                  UnloadedBehavior="Manual"
+                  Stretch="UniformToFill"
+                  IsMuted="True"
+                  Volume="0"
+                  Opacity="0"
+                  MediaOpened="VideoBackground_MediaOpened"
+                  MediaEnded="VideoBackground_MediaEnded"
+                  MediaFailed="VideoBackground_MediaFailed"/>
+    <Border x:Name="VideoOverlay"
+            Grid.ColumnSpan="2"
+            Background="#99000000"
+            Opacity="0"
+            IsHitTestVisible="False"/>
+
+    <Border Grid.Column="0"
+            Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="0,0,1,0">
+      <DockPanel>
+
+        <StackPanel DockPanel.Dock="Top" Margin="16,20,16,24">
+          <TextBlock Text="⚡ IKOBOOST"
+                     Foreground="{DynamicResource AccentBrush}"
+                     FontSize="18" FontWeight="Bold"/>
+          <TextBlock Text="System Monitor"
+                     Foreground="{DynamicResource TextSecondaryBrush}"
+                     FontSize="11" Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <Separator DockPanel.Dock="Top"/>
+
+        <StackPanel DockPanel.Dock="Top" Margin="8,0">
+          <Button x:Name="BtnDashboard" Style="{StaticResource NavButtonStyle}" Click="NavButton_Click" Tag="Dashboard" Margin="0,2">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="18" TextAlignment="Center" VerticalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Nav.Dashboard}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnHardware" Style="{StaticResource NavButtonStyle}" Click="NavButton_Click" Tag="Hardware" Margin="0,2">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE9F9;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="18" TextAlignment="Center" VerticalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Nav.Hardware}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnNetwork" Style="{StaticResource NavButtonStyle}" Click="NavButton_Click" Tag="Network" Margin="0,2">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE701;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="18" TextAlignment="Center" VerticalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Nav.Network}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnProcesses" Style="{StaticResource NavButtonStyle}" Click="NavButton_Click" Tag="Processes" Margin="0,2">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE74C;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="18" TextAlignment="Center" VerticalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Nav.Processes}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnWinget" Style="{StaticResource NavButtonStyle}" Click="NavButton_Click" Tag="Winget" Margin="0,2">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="18" TextAlignment="Center" VerticalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Nav.Applications}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnStartup" Style="{StaticResource NavButtonStyle}" Click="NavButton_Click" Tag="Startup" Margin="0,2">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="18" TextAlignment="Center" VerticalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Nav.Startup}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnOptimize" Style="{StaticResource NavButtonStyle}" Click="NavButton_Click" Tag="Optimize" Margin="0,2">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="18" TextAlignment="Center" VerticalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Nav.Optimize}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="BtnSettings" Style="{StaticResource NavButtonStyle}" Click="NavButton_Click" Tag="Settings" Margin="0,2">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="18" TextAlignment="Center" VerticalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Nav.Settings}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+          </Button>
+        </StackPanel>
+
+        <TextBlock DockPanel.Dock="Bottom"
+                   Text="v1.0.0 - .NET 8"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   FontSize="10" Margin="16,0,0,12"/>
+      </DockPanel>
+    </Border>
+
+    <Frame x:Name="ContentFrame"
+           Grid.Column="1"
+           NavigationUIVisibility="Hidden"
+           Background="Transparent"/>
+  </Grid>
+</Window>

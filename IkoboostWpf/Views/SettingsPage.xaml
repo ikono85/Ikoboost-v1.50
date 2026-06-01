@@ -1,0 +1,66 @@
+<Page x:Class="IkoboostWpf.Views.SettingsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="{DynamicResource BackgroundBrush}"
+      Title="{DynamicResource Settings.Title}">
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="24" MaxWidth="600" HorizontalAlignment="Left">
+<TextBlock Text="{DynamicResource Settings.Title}" FontSize="22" FontWeight="SemiBold"
+                 Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,20"/>
+
+      <!-- Apparence -->
+      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+        <StackPanel>
+          <TextBlock Text="{DynamicResource Settings.Appearance}" Style="{StaticResource SectionLabelStyle}"/>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="{DynamicResource Settings.Theme}" Width="160" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" Width="180"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="{DynamicResource Settings.Language}" Width="160" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" Width="180"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Monitoring -->
+      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+        <StackPanel>
+          <TextBlock Text="{DynamicResource Settings.Monitoring}" Style="{StaticResource SectionLabelStyle}"/>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="{DynamicResource Settings.RefreshInterval}" Width="240" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding RefreshIntervals}" SelectedItem="{Binding RefreshIntervalSeconds}" Width="80"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{DynamicResource Settings.TempAlert}" Width="240" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+            <TextBox Width="80" Text="{Binding TempAlertCelsius}"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Alertes -->
+      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+        <StackPanel>
+          <TextBlock Text="{DynamicResource Settings.Alerts}" Style="{StaticResource SectionLabelStyle}"/>
+          <CheckBox Content="{DynamicResource Settings.NetworkAlerts}"
+                    IsChecked="{Binding AlertNetwork, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    Margin="0,4"/>
+          <CheckBox Content="{DynamicResource Settings.StorageAlerts}"
+                    IsChecked="{Binding AlertStorage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    Margin="0,4"/>
+          <CheckBox Content="{DynamicResource Settings.MinimizeToTray}"
+                    IsChecked="{Binding MinimizeToTray, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    Margin="0,4"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Actions -->
+      <StackPanel Orientation="Horizontal">
+        <Button Content="{DynamicResource Common.Save}" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding SaveCommand}"/>
+        <Button Content="{DynamicResource Common.Reset}" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding ResetCommand}" Margin="8,0,0,0"/>
+      </StackPanel>
+
+    </StackPanel>
+  </ScrollViewer>
+</Page>

@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
+		<UseWindowsForms>true</UseWindowsForms>
+		<AssemblyName>Ikoboost</AssemblyName>
+		<RootNamespace>IkoboostWpf</RootNamespace>
+		<Title>Ikono</Title>
+		<Product>Ikono</Product>
+		<Company>Ikono</Company>
+		<Authors>Ikono</Authors>
+		<Description>Ikono System Monitor</Description>
+		<Copyright>Copyright © Ikono 2026</Copyright>
+		<AssemblyTitle>Ikono</AssemblyTitle>
+		<FileDescription>Ikono System Monitor</FileDescription>
+
+		<Platforms>x64</Platforms>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<SelfContained>true</SelfContained>
+		<PublishSingleFile>true</PublishSingleFile>
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="Assets\270507_small.mp4">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+		<PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+		<PackageReference Include="System.Management" Version="10.0.2" />
+	</ItemGroup>
+
+</Project>

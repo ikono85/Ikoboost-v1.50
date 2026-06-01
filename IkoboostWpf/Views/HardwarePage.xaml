@@ -1,0 +1,82 @@
+<Page x:Class="IkoboostWpf.Views.HardwarePage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="{DynamicResource BackgroundBrush}"
+      Title="{DynamicResource Nav.Hardware}">
+
+  <DockPanel Margin="24">
+
+    <!-- Header -->
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+<TextBlock Text="{DynamicResource Hardware.Title}" FontSize="22" FontWeight="SemiBold"
+                 Foreground="{DynamicResource TextPrimaryBrush}"/>
+      <TextBlock Text="{Binding StatusMessage}" FontSize="12"
+                 Foreground="{DynamicResource WarningBrush}" Margin="0,4,0,0"
+                 TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <!-- Toolbar -->
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+      <Button Content="{DynamicResource Common.Refresh}" Style="{StaticResource PrimaryButtonStyle}"
+              Command="{Binding RefreshCommand}"/>
+    </StackPanel>
+
+    <!-- Sensor table -->
+    <DataGrid ItemsSource="{Binding Sensors}" IsReadOnly="True">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="{DynamicResource Hardware.Category}"  Binding="{Binding Category}" Width="130"/>
+        <DataGridTextColumn Header="{DynamicResource Hardware.Sensor}"    Binding="{Binding Name}"     Width="*"/>
+        <DataGridTextColumn Header="{DynamicResource Hardware.Reference}" Binding="{Binding Reference}" Width="220"/>
+        <DataGridTextColumn Header="{DynamicResource Common.Value}"       Binding="{Binding Value}"    Width="130"/>
+        <DataGridTemplateColumn Header="{DynamicResource Hardware.Level}" Width="100">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <Grid>
+                <Button Content="{DynamicResource Hardware.Info}"
+                        Command="{Binding DataContext.OpenProductPageCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        CommandParameter="{Binding}"
+                        Padding="8,2"
+                        HorizontalAlignment="Left">
+                  <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                      <Setter Property="Visibility" Value="Collapsed"/>
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasProductInfo}" Value="True">
+                          <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Button.Style>
+                </Button>
+
+                <TextBlock Text="{Binding Level}">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Visibility" Value="Visible"/>
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasProductInfo}" Value="True">
+                          <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Level}" Value="Critical">
+                          <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+                          <Setter Property="FontWeight" Value="SemiBold"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Level}" Value="Warning">
+                          <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Level}" Value="Normal">
+                          <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+              </Grid>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+
+  </DockPanel>
+</Page>

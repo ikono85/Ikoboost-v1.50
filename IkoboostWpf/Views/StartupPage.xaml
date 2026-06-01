@@ -1,0 +1,66 @@
+<Page x:Class="IkoboostWpf.Views.StartupPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="{DynamicResource BackgroundBrush}"
+      Title="{DynamicResource Nav.Startup}">
+
+  <DockPanel Margin="24">
+
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+<TextBlock Text="{DynamicResource Startup.Title}" FontSize="22" FontWeight="SemiBold"
+                 Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+
+      <WrapPanel Margin="0,0,0,12">
+        <Border Style="{StaticResource CardStyle}" Width="180" Margin="0,0,12,0">
+          <StackPanel>
+            <TextBlock Text="{DynamicResource Startup.Enabled}" Style="{StaticResource MetricLabelStyle}"/>
+            <TextBlock Text="{Binding EnabledCount}" Style="{StaticResource MetricValueStyle}"/>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource CardStyle}" Width="180" Margin="0,0,12,0">
+          <StackPanel>
+            <TextBlock Text="{DynamicResource Startup.Disabled}" Style="{StaticResource MetricLabelStyle}"/>
+            <TextBlock Text="{Binding DisabledCount}" Style="{StaticResource MetricValueStyle}"
+                       Foreground="{DynamicResource AccentBrush}"/>
+          </StackPanel>
+        </Border>
+      </WrapPanel>
+
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+        <Button Content="{DynamicResource Common.Refresh}" Style="{StaticResource PrimaryButtonStyle}"
+                Command="{Binding LoadCommand}"/>
+        <Button Content="{DynamicResource Startup.ToggleSelected}" Style="{StaticResource PrimaryButtonStyle}"
+                Command="{Binding ToggleSelectedCommand}" Margin="8,0,0,0"/>
+      </StackPanel>
+
+      <TextBox Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+               Height="32"
+               Margin="0,0,0,4"/>
+    </StackPanel>
+
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource CardStyle}" Margin="0,8,0,0" MaxHeight="120">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <TextBlock Text="{Binding StatusLog}" Foreground="{DynamicResource TextSecondaryBrush}"
+                   FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"/>
+      </ScrollViewer>
+    </Border>
+
+    <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" IsReadOnly="False">
+      <DataGrid.Columns>
+        <DataGridTemplateColumn Header="{DynamicResource Startup.Start}" Width="90">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        IsEnabled="{Binding CanToggle}"
+                        HorizontalAlignment="Center"/>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTextColumn Header="{DynamicResource Common.Name}" Binding="{Binding Name}" Width="220" IsReadOnly="True"/>
+        <DataGridTextColumn Header="{DynamicResource Common.Source}" Binding="{Binding Source}" Width="190" IsReadOnly="True"/>
+        <DataGridTextColumn Header="{DynamicResource Startup.Command}" Binding="{Binding Command}" Width="*" IsReadOnly="True"/>
+      </DataGrid.Columns>
+    </DataGrid>
+
+  </DockPanel>
+</Page>
