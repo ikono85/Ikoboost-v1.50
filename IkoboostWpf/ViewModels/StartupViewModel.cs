@@ -1,158 +1,97 @@
+using System.Collections.ObjectModel;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using IkoboostWpf.Models;
 using IkoboostWpf.Services;
-using System.Collections.ObjectModel;
 
 namespace IkoboostWpf.ViewModels;
 
-public sealed partial class StartupViewModel : BaseViewModel
+public partial class StartupViewModel : ObservableObject
 {
-    private readonly StartupService _startup;
-    private List<StartupItemViewModel> _allItems = [];
-    private CancellationTokenSource? _cts;
+    private readonly StartupService _service = new();
+    private List<StartupItem> _allItems = [];
 
-    [ObservableProperty] private StartupItemViewModel? _selectedItem;
-    [ObservableProperty] private string _searchText = string.Empty;
-    [ObservableProperty] private string _statusLog = "Chargement des programmes de démarrage...";
-    [ObservableProperty] private bool _isBusy;
+    private static readonly Brush Green = new SolidColorBrush(Color.FromRgb(0x38, 0xD9, 0x96));
+    private static readonly Brush Amber = new SolidColorBrush(Color.FromRgb(0xF5, 0xB5, 0x3D));
+    private static readonly Brush Red = new SolidColorBrush(Color.FromRgb(0xFB, 0x5E, 0x63));
+    private static readonly Brush GreenBg = new SolidColorBrush(Color.FromArgb(0x22, 0x38, 0xD9, 0x96));
+    private static readonly Brush AmberBg = new SolidColorBrush(Color.FromArgb(0x22, 0xF5, 0xB5, 0x3D));
+    private static readonly Brush RedBg = new SolidColorBrush(Color.FromArgb(0x22, 0xFB, 0x5E, 0x63));
+
     [ObservableProperty] private int _enabledCount;
     [ObservableProperty] private int _disabledCount;
+    [ObservableProperty] private string _startupImpactText = "~0s";
+    [ObservableProperty] private string _searchText = "";
+    [ObservableProperty] private string _statusLog = "";
+    [ObservableProperty] private ObservableCollection<StartupItem> _items = [];
+    [ObservableProperty] private StartupItem? _selectedItem;
 
-    public ObservableCollection<StartupItemViewModel> Items { get; } = [];
+    public StartupViewModel() => LoadCommand.Execute(null);
 
-    public StartupViewModel(StartupService startup)
+    partial void OnSearchTextChanged(string value) => FilterItems();
+
+    [RelayCommand]
+    private void Load()
     {
-        _startup = startup;
+        _allItems = _service.GetStartupItems();
+        foreach (var item in _allItems)
+            DecorateImpact(item);
+
+        EnabledCount = _allItems.Count(i => i.IsEnabled);
+        DisabledCount = _allItems.Count(i => !i.IsEnabled);
+        StartupImpactText = $"~{Math.Max(1, EnabledCount * 2)}s";
+        FilterItems();
+        StatusLog = $"{_allItems.Count} element(s) de demarrage charges.";
     }
 
     [RelayCommand]
-    public async Task LoadAsync()
+    private void ToggleSelected()
     {
-        if (IsBusy)
-            return;
-
-        _cts?.Cancel();
-        _cts = new CancellationTokenSource();
-        IsBusy = true;
-        StatusLog = "Analyse des programmes de démarrage...";
-
-        try
-        {
-            var entries = await _startup.GetEntriesAsync(_cts.Token);
-            _allItems = entries.Select(e => new StartupItemViewModel(e, ToggleEntryAsync)).ToList();
-            ApplyFilter();
-            StatusLog = $"{_allItems.Count} programme(s) trouvé(s).";
-        }
-        catch (OperationCanceledException)
-        {
-            StatusLog = "Analyse annulée.";
-        }
-        catch (Exception ex)
-        {
-            StatusLog = $"Erreur pendant la lecture du démarrage : {ex.Message}";
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        if (SelectedItem == null) return;
+        StatusLog = _service.ToggleItem(SelectedItem);
+        Load();
     }
 
     [RelayCommand]
-    private async Task ToggleSelectedAsync()
+    private void ToggleItem(StartupItem? item)
     {
-        if (SelectedItem == null)
-            return;
-
-        await ToggleEntryAsync(SelectedItem, !SelectedItem.IsEnabled);
+        if (item == null) return;
+        SelectedItem = item;
+        StatusLog = _service.SetItemEnabled(item, item.IsEnabled);
+        Load();
     }
 
-    partial void OnSearchTextChanged(string value) => ApplyFilter();
-
-    private void ApplyFilter()
+    private void FilterItems()
     {
-        var query = SearchText.Trim();
-        var filtered = string.IsNullOrWhiteSpace(query)
+        var filtered = string.IsNullOrWhiteSpace(SearchText)
             ? _allItems
-            : _allItems.Where(item =>
-                item.Name.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
-                item.Source.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
-                item.Command.Contains(query, StringComparison.CurrentCultureIgnoreCase));
-
-        Items.Clear();
-        foreach (var item in filtered)
-            Items.Add(item);
-
-        EnabledCount = _allItems.Count(item => item.IsEnabled);
-        DisabledCount = _allItems.Count(item => !item.IsEnabled);
+            : _allItems.Where(i =>
+                i.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                i.Source.Contains(SearchText, StringComparison.OrdinalIgnoreCase)).ToList();
+        Items = new ObservableCollection<StartupItem>(filtered);
     }
 
-    private async Task ToggleEntryAsync(StartupItemViewModel item, bool enabled)
+    private static void DecorateImpact(StartupItem item)
     {
-        if (IsBusy || !item.CanToggle)
-            return;
-
-        IsBusy = true;
-        StatusLog = enabled
-            ? $"Activation de {item.Name} au démarrage..."
-            : $"Désactivation de {item.Name} au démarrage...";
-
-        try
+        var text = $"{item.Name} {item.Command}".ToLowerInvariant();
+        if (text.Contains("discord") || text.Contains("teams"))
         {
-            await _startup.SetEnabledAsync(item.Entry, enabled);
-            StatusLog = enabled
-                ? $"{item.Name} sera lancé au prochain démarrage."
-                : $"{item.Name} ne sera plus lancé au prochain démarrage.";
-            IsBusy = false;
-            await LoadAsync();
+            item.Impact = "Eleve";
+            item.ImpactBrush = Red;
+            item.ImpactBackground = RedBg;
         }
-        catch (Exception ex)
+        else if (text.Contains("steam") || text.Contains("spotify") || text.Contains("onedrive"))
         {
-            StatusLog = $"Impossible de modifier {item.Name} : {ex.Message}";
-            item.RefreshFromEntry();
+            item.Impact = "Moyen";
+            item.ImpactBrush = Amber;
+            item.ImpactBackground = AmberBg;
         }
-        finally
+        else
         {
-            IsBusy = false;
+            item.Impact = "Faible";
+            item.ImpactBrush = Green;
+            item.ImpactBackground = GreenBg;
         }
-    }
-
-    public override void Dispose()
-    {
-        _cts?.Cancel();
-        _cts?.Dispose();
-        base.Dispose();
-    }
-}
-
-public sealed partial class StartupItemViewModel : ObservableObject
-{
-    private readonly Func<StartupItemViewModel, bool, Task> _toggle;
-
-    public StartupService.StartupEntry Entry { get; private set; }
-    public string Name => Entry.Name;
-    public string Command => Entry.Command;
-    public string Source => Entry.Source;
-    public bool CanToggle => Entry.CanToggle;
-
-    [ObservableProperty] private bool _isEnabled;
-
-    public StartupItemViewModel(StartupService.StartupEntry entry, Func<StartupItemViewModel, bool, Task> toggle)
-    {
-        Entry = entry;
-        _toggle = toggle;
-        _isEnabled = entry.IsEnabled;
-    }
-
-    partial void OnIsEnabledChanged(bool value)
-    {
-        if (value == Entry.IsEnabled)
-            return;
-
-        _ = _toggle(this, value);
-    }
-
-    public void RefreshFromEntry()
-    {
-        IsEnabled = Entry.IsEnabled;
     }
 }

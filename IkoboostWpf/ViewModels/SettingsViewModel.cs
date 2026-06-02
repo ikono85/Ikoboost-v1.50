@@ -1,135 +1,79 @@
+using System.Collections.Generic;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IkoboostWpf.Services;
 
 namespace IkoboostWpf.ViewModels;
 
-public sealed partial class SettingsViewModel : BaseViewModel
+public partial class SettingsViewModel : ObservableObject
 {
-    private readonly SettingsService _settingsService;
-    private bool _isLoading;
+    private readonly SettingsService _service = new();
+    private AppSettings _settings;
 
-    [ObservableProperty] private string _theme = "Dark";
+    [ObservableProperty] private string _theme = "Sombre (Ikoboost OS)";
     [ObservableProperty] private string _language = "Français";
-    [ObservableProperty] private int _refreshIntervalSeconds = 2;
-    [ObservableProperty] private float _tempAlertCelsius = 85f;
-    [ObservableProperty] private bool _minimizeToTray = true;
+    [ObservableProperty] private int _refreshIntervalSeconds = 1;
+    [ObservableProperty] private int _tempAlertCelsius = 85;
     [ObservableProperty] private bool _alertNetwork = true;
     [ObservableProperty] private bool _alertStorage = true;
+    [ObservableProperty] private bool _minimizeToTray;
 
-    public IReadOnlyList<string> Themes { get; } = ["Dark", "Light", "Cybertek", "Video"];
-    public IReadOnlyList<string> Languages { get; } =
+    public List<string> Themes { get; } = ["Sombre (Ikoboost OS)", "Clair"];
+    public List<string> Languages { get; } = ["Français", "English"];
+    public List<int> RefreshIntervals { get; } = [1, 2, 5, 10];
+    public List<Brush> AccentColors { get; } =
     [
-        "Français",
-        "English",
-        "Español",
-        "Português (Brasil)",
-        "Deutsch",
-        "العربية",
-        "Русский",
-        "中文简体",
-        "日本語"
+        new SolidColorBrush(Color.FromRgb(0x2F, 0xE6, 0xF2)),
+        new SolidColorBrush(Color.FromRgb(0x9E, 0x7B, 0xFF)),
+        new SolidColorBrush(Color.FromRgb(0x4D, 0x8D, 0xF6)),
+        new SolidColorBrush(Color.FromRgb(0x38, 0xD9, 0x96)),
+        new SolidColorBrush(Color.FromRgb(0xF5, 0xB5, 0x3D)),
     ];
-    public IReadOnlyList<int> RefreshIntervals { get; } = [1, 2, 5, 10];
 
-    public SettingsViewModel(SettingsService settingsService)
+    public SettingsViewModel()
     {
-        _settingsService = settingsService;
-        Load();
-    }
-
-    private void Load()
-    {
-        _isLoading = true;
-        var s = _settingsService.Load();
-        Theme = s.Theme == "Cyberpunk" ? "Cybertek" : s.Theme;
-        Language = ToLanguageLabel(s.Language);
-        RefreshIntervalSeconds = s.RefreshIntervalSeconds;
-        TempAlertCelsius = s.TempAlertCelsius;
-        MinimizeToTray = s.MinimizeToTray;
-        AlertNetwork = s.AlertNetwork;
-        AlertStorage = s.AlertStorage;
-        _isLoading = false;
-    }
-
-    partial void OnThemeChanged(string value)
-    {
-        SaveIfReady();
-    }
-
-    partial void OnLanguageChanged(string value) => SaveIfReady();
-    partial void OnRefreshIntervalSecondsChanged(int value) => SaveIfReady();
-    partial void OnTempAlertCelsiusChanged(float value) => SaveIfReady();
-    partial void OnMinimizeToTrayChanged(bool value) => SaveIfReady();
-    partial void OnAlertNetworkChanged(bool value) => SaveIfReady();
-    partial void OnAlertStorageChanged(bool value) => SaveIfReady();
-
-    private void SaveIfReady()
-    {
-        if (!_isLoading)
-            Save();
+        _settings = _service.Load();
+        Theme = NormalizeTheme(_settings.Theme);
+        Language = NormalizeLanguage(_settings.Language);
+        RefreshIntervalSeconds = _settings.RefreshIntervalSeconds;
+        TempAlertCelsius = _settings.TempAlertCelsius;
+        AlertNetwork = _settings.AlertNetwork;
+        AlertStorage = _settings.AlertStorage;
+        MinimizeToTray = _settings.MinimizeToTray;
     }
 
     [RelayCommand]
     private void Save()
     {
-        var existing = _settingsService.Load();
-        _settingsService.Save(new AppSettings
-        {
-            Theme = Theme,
-            Language = ToLanguageCode(Language),
-            AccentTheme = existing.AccentTheme,
-            DiscoverySource = existing.DiscoverySource,
-            OnboardingCompleted = existing.OnboardingCompleted,
-            RefreshIntervalSeconds = RefreshIntervalSeconds,
-            TempAlertCelsius = TempAlertCelsius,
-            MinimizeToTray = MinimizeToTray,
-            AlertNetwork = AlertNetwork,
-            AlertStorage = AlertStorage
-        });
-        App.ApplyTheme(Theme);
-        App.ApplyLanguage(ToLanguageCode(Language));
+        _settings.Theme = Theme;
+        _settings.Language = Language;
+        _settings.RefreshIntervalSeconds = RefreshIntervalSeconds;
+        _settings.TempAlertCelsius = TempAlertCelsius;
+        _settings.AlertNetwork = AlertNetwork;
+        _settings.AlertStorage = AlertStorage;
+        _settings.MinimizeToTray = MinimizeToTray;
+        _service.Save(_settings);
     }
 
     [RelayCommand]
     private void Reset()
     {
-        var defaults = new AppSettings();
-        Theme = defaults.Theme;
-        Language = ToLanguageLabel(defaults.Language);
-        RefreshIntervalSeconds = defaults.RefreshIntervalSeconds;
-        TempAlertCelsius = defaults.TempAlertCelsius;
-        MinimizeToTray = defaults.MinimizeToTray;
-        AlertNetwork = defaults.AlertNetwork;
-        AlertStorage = defaults.AlertStorage;
-        Save();
+        _settings = new AppSettings();
+        Theme = NormalizeTheme(_settings.Theme);
+        Language = NormalizeLanguage(_settings.Language);
+        RefreshIntervalSeconds = _settings.RefreshIntervalSeconds;
+        TempAlertCelsius = _settings.TempAlertCelsius;
+        AlertNetwork = _settings.AlertNetwork;
+        AlertStorage = _settings.AlertStorage;
+        MinimizeToTray = _settings.MinimizeToTray;
     }
 
-    private static string ToLanguageLabel(string code)
-        => code switch
-        {
-            "en" => "English",
-            "es" => "Español",
-            "pt-BR" => "Português (Brasil)",
-            "de" => "Deutsch",
-            "ar" => "العربية",
-            "ru" => "Русский",
-            "zh-Hans" => "中文简体",
-            "ja" => "日本語",
-            _ => "Français"
-        };
+    private static string NormalizeTheme(string theme) =>
+        string.Equals(theme, "Sombre", StringComparison.OrdinalIgnoreCase)
+            ? "Sombre (Ikoboost OS)"
+            : theme;
 
-    private static string ToLanguageCode(string label)
-        => label switch
-        {
-            "English" => "en",
-            "Español" => "es",
-            "Português (Brasil)" => "pt-BR",
-            "Deutsch" => "de",
-            "العربية" => "ar",
-            "Русский" => "ru",
-            "中文简体" => "zh-Hans",
-            "日本語" => "ja",
-            _ => "fr"
-        };
+    private static string NormalizeLanguage(string language) =>
+        language.Contains("Fran", StringComparison.OrdinalIgnoreCase) ? "Français" : language;
 }

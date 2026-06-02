@@ -10,8 +10,8 @@ public partial class LoadingWindow : Window
         InitializeComponent();
         Loaded += (_, _) =>
         {
-            if (FindResource("LoadingStoryboard") is Storyboard storyboard)
-                storyboard.Begin(this, true);
+            if (Resources["LoadingStoryboard"] is Storyboard sb)
+                sb.Begin(this);
         };
     }
 }

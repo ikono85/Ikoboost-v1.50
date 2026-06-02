@@ -1,325 +1,194 @@
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using IkoboostWpf.Models;
 using IkoboostWpf.Services;
-using System.Collections.ObjectModel;
-using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Windows.Threading;
 
 namespace IkoboostWpf.ViewModels;
 
-public sealed partial class NetworkViewModel : BaseViewModel
+public partial class NetworkViewModel : ObservableObject
 {
-    private readonly NetworkService _network;
-    private readonly OptimizationService _optimization;
-    private readonly DispatcherTimer _timer;
-    private CancellationTokenSource _cts = new();
-    private bool _initialized;
-    private bool _isRefreshingThroughput;
+    private readonly NetworkService _service = new();
+    private readonly DispatcherTimer _throughputTimer;
+    private NetworkInterface? _adapter;
+    private long _prevIn, _prevOut;
+    private readonly Queue<double> _inSamples = new();
+    private readonly Queue<double> _outSamples = new();
+    private const int ThroughputHistorySize = 60;
 
-    [ObservableProperty] private string _adapterName = "N/A";
-    [ObservableProperty] private string _ipv4 = "N/A";
-    [ObservableProperty] private string _ipv6 = "N/A";
-    [ObservableProperty] private string _gateway = "N/A";
-    [ObservableProperty] private string _dns = "N/A";
-    [ObservableProperty] private long _pingMs = -1;
+    [ObservableProperty] private string _adapterName = "";
+    [ObservableProperty] private string _ipv4 = "";
+    [ObservableProperty] private string _ipv6 = "";
+    [ObservableProperty] private string _gateway = "";
+    [ObservableProperty] private string _dns = "";
+    [ObservableProperty] private string _pingMs = "—";
+    [ObservableProperty] private string _selectedDnsProfile = "Cloudflare (1.1.1.1)";
+    [ObservableProperty] private string _dnsLog = "";
+    [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private double _inMbps;
     [ObservableProperty] private double _outMbps;
-    [ObservableProperty] private double _pingAverageMs;
-    [ObservableProperty] private long _pingMinMs = -1;
-    [ObservableProperty] private long _pingMaxMs = -1;
-    [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private IEnumerable<double> _inHistory = [];
+    [ObservableProperty] private IEnumerable<double> _outHistory = [];
+    [ObservableProperty] private string _speedTestStatus = "Prêt";
     [ObservableProperty] private bool _isSpeedTestRunning;
+    [ObservableProperty] private double _speedTestProgress;
     [ObservableProperty] private double _speedTestPingMs;
     [ObservableProperty] private double _speedTestDownloadMbps;
     [ObservableProperty] private double _speedTestUploadMbps;
     [ObservableProperty] private double _speedTestJitterMs;
-    [ObservableProperty] private double _speedTestProgress;
-    [ObservableProperty] private string _speedTestStatus = "Pret";
-    [ObservableProperty] private string _speedTestError = string.Empty;
-    [ObservableProperty] private string _repairLog = string.Empty;
-    [ObservableProperty] private string _dnsLog = string.Empty;
-    [ObservableProperty] private string _selectedDnsProfile = "Cloudflare";
+    [ObservableProperty] private string _speedTestError = "";
+    [ObservableProperty] private ObservableCollection<SpeedTestRecord> _speedTestHistory = [];
+    [ObservableProperty] private double _pingAverageMs;
+    [ObservableProperty] private string _pingMinMs = "—";
+    [ObservableProperty] private string _pingMaxMs = "—";
+    [ObservableProperty] private ObservableCollection<PingResult> _pingResults = [];
+    [ObservableProperty] private string _repairLog = "";
 
-    public ObservableCollection<PingResultRow> PingResults { get; } = [];
-    public ObservableCollection<SpeedTestHistoryRow> SpeedTestHistory { get; } = [];
-    public IReadOnlyDictionary<string, string> DnsProfiles => OptimizationService.DnsProfiles;
+    public Dictionary<string, object> DnsProfiles =>
+        NetworkService.DnsProfiles.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
 
-    public NetworkViewModel(NetworkService network, OptimizationService optimization)
+    public NetworkViewModel()
     {
-        _network = network;
-        _optimization = optimization;
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _timer.Tick += async (_, _) =>
-        {
-            if (!IsDisposed)
-                await RefreshThroughputAsync();
-        };
-    }
-
-    public async Task InitializeAsync()
-    {
-        if (IsDisposed) return;
-
-        if (!_initialized)
-        {
-            _initialized = true;
-            RefreshAdapterInfo();
-            await PingAllAsync();
-        }
-        else
-        {
-            RefreshAdapterInfo();
-        }
-
-        if (!IsDisposed)
-            _timer.Start();
-    }
-
-    public void Pause()
-    {
-        if (!IsDisposed)
-            _timer.Stop();
-    }
-
-    private void RefreshAdapterInfo()
-    {
-        var info = _network.GetActiveAdapterInfo();
-        if (info == null) return;
-        AdapterName = info.Name;
-        Ipv4 = info.IPv4;
-        Ipv6 = info.IPv6;
+        var info = _service.GetAdapterInfo();
+        AdapterName = info.Adapter;
+        Ipv4 = info.Ipv4;
+        Ipv6 = info.Ipv6;
         Gateway = info.Gateway;
         Dns = info.Dns;
+        MeasurePing();
+        InitThroughput();
+
+        _throughputTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _throughputTimer.Tick += (_, _) => PollThroughput();
+        _throughputTimer.Start();
     }
 
-    private async Task RefreshThroughputAsync()
+    private void InitThroughput()
     {
-        if (IsDisposed) return;
-        if (_isRefreshingThroughput) return;
-
-        CancellationToken ct;
-        try { ct = _cts.Token; }
-        catch (ObjectDisposedException) { return; }
-
-        _isRefreshingThroughput = true;
         try
         {
-            RefreshAdapterInfo();
-            var (inMbps, outMbps) = _network.GetThroughput();
-            InMbps = Math.Round(inMbps, 2);
-            OutMbps = Math.Round(outMbps, 2);
-            PingMs = await _network.PingAsync(ct: ct);
+            foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (ni.OperationalStatus != OperationalStatus.Up) continue;
+                if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+                var s = ni.GetIPStatistics();
+                if (s.BytesReceived > 0) { _adapter = ni; _prevIn = s.BytesReceived; _prevOut = s.BytesSent; break; }
+            }
         }
-        catch (OperationCanceledException) { }
-        catch (ObjectDisposedException) { }
-        finally { _isRefreshingThroughput = false; }
+        catch { }
+    }
+
+    private void PollThroughput()
+    {
+        if (_adapter == null) return;
+        try
+        {
+            var s = _adapter.GetIPStatistics();
+            InMbps = Math.Round((s.BytesReceived - _prevIn) * 8.0 / 1_000_000, 2);
+            OutMbps = Math.Round((s.BytesSent - _prevOut) * 8.0 / 1_000_000, 2);
+            _prevIn = s.BytesReceived;
+            _prevOut = s.BytesSent;
+            PushSample(_inSamples, InMbps);
+            PushSample(_outSamples, OutMbps);
+            InHistory = _inSamples.ToArray();
+            OutHistory = _outSamples.ToArray();
+        }
+        catch { }
+    }
+
+    private static void PushSample(Queue<double> samples, double value)
+    {
+        samples.Enqueue(Math.Max(0, value));
+        while (samples.Count > ThroughputHistorySize)
+            samples.Dequeue();
+    }
+
+    private async void MeasurePing()
+    {
+        try
+        {
+            var ping = new Ping();
+            var reply = await ping.SendPingAsync("8.8.8.8", 2000);
+            PingMs = reply.Status == IPStatus.Success ? $"{reply.RoundtripTime}" : "—";
+        }
+        catch { }
     }
 
     [RelayCommand]
-    private async Task PingAllAsync()
+    private async Task SetDns()
     {
-        if (IsDisposed) return;
-
-        CancellationToken ct;
-        try { ct = _cts.Token; }
-        catch (ObjectDisposedException) { return; }
-
         IsBusy = true;
-        PingResults.Clear();
-        try
-        {
-            var results = await _network.PingAllTargetsAsync(ct);
-            foreach (var r in results)
-                PingResults.Add(new PingResultRow(r.Host, r.Success, r.RoundtripMs, r.Error));
-
-            UpdatePingStats(results);
-        }
-        catch (OperationCanceledException) { }
-        catch (ObjectDisposedException) { }
-        finally { IsBusy = false; }
-    }
-
-    private void UpdatePingStats(IReadOnlyList<NetworkService.PingResult> results)
-    {
-        var successful = results
-            .Where(r => r.Success && r.RoundtripMs >= 0)
-            .Select(r => r.RoundtripMs)
-            .ToList();
-
-        if (successful.Count == 0)
-        {
-            PingAverageMs = 0;
-            PingMinMs = -1;
-            PingMaxMs = -1;
-            return;
-        }
-
-        PingAverageMs = Math.Round(successful.Average(), 1);
-        PingMinMs = successful.Min();
-        PingMaxMs = successful.Max();
+        DnsLog = "Changement DNS en cours...";
+        DnsLog = await _service.SetDnsAsync(SelectedDnsProfile);
+        IsBusy = false;
     }
 
     [RelayCommand]
-    private async Task RunSpeedTestAsync()
+    private async Task FlushDns()
     {
-        if (IsDisposed || IsSpeedTestRunning)
-            return;
+        IsBusy = true;
+        DnsLog = await _service.FlushDnsAsync();
+        IsBusy = false;
+    }
 
-        CancellationToken ct;
-        try { ct = _cts.Token; }
-        catch (ObjectDisposedException) { return; }
-
+    [RelayCommand]
+    private async Task RunSpeedTest()
+    {
         IsSpeedTestRunning = true;
-        SpeedTestError = string.Empty;
         SpeedTestProgress = 0;
-        SpeedTestStatus = "Preparation du test...";
+        SpeedTestError = "";
+        SpeedTestStatus = "Test en cours...";
 
-        var progress = new Progress<NetworkService.SpeedTestProgress>(p =>
-        {
-            SpeedTestStatus = p.Stage;
-            SpeedTestProgress = Math.Clamp(p.Percent, 0, 100);
-        });
+        var result = await _service.RunSpeedTestAsync(new Progress<int>(p => SpeedTestProgress = p));
 
-        try
+        if (result != null)
         {
-            var result = await _network.RunSpeedTestAsync(progress, ct);
             SpeedTestPingMs = result.PingMs;
             SpeedTestDownloadMbps = result.DownloadMbps;
             SpeedTestUploadMbps = result.UploadMbps;
             SpeedTestJitterMs = result.JitterMs;
-            var hasPartialResult = result.DownloadMbps <= 0 || result.UploadMbps <= 0;
-            SpeedTestStatus = hasPartialResult ? "Test termine (partiel)" : "Test termine";
-            SpeedTestError = hasPartialResult
-                ? "Connexion detectee, mais une mesure de debit n'a pas repondu assez vite."
-                : string.Empty;
-            SpeedTestProgress = 100;
-
-            SpeedTestHistory.Insert(0, new SpeedTestHistoryRow(
-                DateTime.Now.ToString("HH:mm:ss"),
-                result.PingMs,
-                result.DownloadMbps,
-                result.UploadMbps,
-                result.JitterMs));
-
-            while (SpeedTestHistory.Count > 5)
-                SpeedTestHistory.RemoveAt(SpeedTestHistory.Count - 1);
+            SpeedTestHistory.Insert(0, result);
+            if (SpeedTestHistory.Count > 20) SpeedTestHistory.RemoveAt(SpeedTestHistory.Count - 1);
+            SpeedTestStatus = $"Test terminé : {result.DownloadMbps:F1} / {result.UploadMbps:F1} Mbps";
         }
-        catch (HttpRequestException ex)
+        else
         {
-            SpeedTestStatus = "Erreur reseau";
-            SpeedTestError = $"Impossible de contacter Cloudflare Speed Test : {ex.Message}";
+            SpeedTestError = "Impossible de contacter le serveur de test. Vérifiez la connexion.";
+            SpeedTestStatus = "Test échoué";
         }
-        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
-        {
-            SpeedTestStatus = "Delai depasse";
-            SpeedTestError = "Le test a pris trop de temps. Verifie ta connexion puis relance le test.";
-        }
-        catch (OperationCanceledException) { }
-        catch (ObjectDisposedException) { }
-        catch (Exception ex)
-        {
-            SpeedTestStatus = "Erreur";
-            SpeedTestError = $"Erreur speed test : {ex.Message}";
-        }
-        finally
-        {
-            IsSpeedTestRunning = false;
-        }
+        IsSpeedTestRunning = false;
+        SpeedTestProgress = 0;
     }
 
     [RelayCommand]
-    private async Task RepairNetworkAsync()
+    private async Task PingAll()
     {
-        if (IsDisposed) return;
-
-        CancellationToken ct;
-        try { ct = _cts.Token; }
-        catch (ObjectDisposedException) { return; }
-
         IsBusy = true;
-        RepairLog = "Réparation en cours…";
-        try
+        PingResults.Clear();
+        var results = await _service.PingAllServersAsync();
+        var successful = results.Where(r => r.Success).ToList();
+        if (successful.Any())
         {
-            RepairLog = await _network.RepairNetworkAsync(ct);
+            var times = successful
+                .Select(r => double.TryParse(r.Ms.Replace(" ms", ""), out var v) ? v : 0)
+                .Where(v => v > 0).ToList();
+            PingAverageMs = times.Any() ? Math.Round(times.Average(), 1) : 0;
+            PingMinMs = times.Any() ? $"{(int)times.Min()}" : "—";
+            PingMaxMs = times.Any() ? $"{(int)times.Max()}" : "—";
         }
-        catch (ObjectDisposedException) { }
-        catch (Exception ex) { RepairLog = $"Erreur : {ex.Message}"; }
-        finally { IsBusy = false; }
+        foreach (var r in results) PingResults.Add(r);
+        IsBusy = false;
     }
 
     [RelayCommand]
-    private async Task SetDnsAsync()
+    private async Task RepairNetwork()
     {
-        if (IsDisposed) return;
-
-        if (!DnsProfiles.TryGetValue(SelectedDnsProfile, out var dns))
-            return;
-
-        var info = _network.GetActiveAdapterInfo();
-        if (info == null)
-        {
-            DnsLog = "Aucun adaptateur réseau actif détecté.";
-            return;
-        }
-
-        CancellationToken ctDns;
-        try { ctDns = _cts.Token; }
-        catch (ObjectDisposedException) { return; }
-
         IsBusy = true;
-        DnsLog = $"Application du DNS {SelectedDnsProfile} ({dns}) sur {info.Name}...";
-
-        try
-        {
-            var result = await _optimization.SetDnsAsync(info.Name, dns, ctDns);
-            RefreshAdapterInfo();
-            DnsLog = result.StartsWith("Erreur", StringComparison.OrdinalIgnoreCase)
-                ? result
-                : $"[OK] DNS appliqué : {SelectedDnsProfile} ({dns})";
-        }
-        catch (OperationCanceledException) { }
-        catch (ObjectDisposedException) { }
-        catch (Exception ex)
-        {
-            DnsLog = $"Erreur DNS : {ex.Message}";
-        }
-        finally { IsBusy = false; }
-    }
-
-    [RelayCommand]
-    private async Task FlushDnsAsync()
-    {
-        if (IsDisposed) return;
-
-        CancellationToken ctFlush;
-        try { ctFlush = _cts.Token; }
-        catch (ObjectDisposedException) { return; }
-
-        IsBusy = true;
-        DnsLog = "Flush DNS en cours...";
-        try
-        {
-            var result = await _optimization.FlushDnsAsync(ctFlush);
-            DnsLog = result.StartsWith("Erreur", StringComparison.OrdinalIgnoreCase)
-                ? result
-                : $"[OK] Cache DNS vide. {result.Trim()}";
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            DnsLog = $"Erreur flush DNS : {ex.Message}";
-        }
-        finally { IsBusy = false; }
-    }
-
-    public override void Dispose()
-    {
-        if (IsDisposed) return;
-        base.Dispose();
-        _timer.Stop();
-        _cts.Cancel();
+        RepairLog = "Réparation en cours...";
+        RepairLog = await _service.RepairNetworkAsync();
+        IsBusy = false;
     }
 }
-
-public sealed record PingResultRow(string Host, bool Success, long Ms, string Error);
-public sealed record SpeedTestHistoryRow(string Time, double PingMs, double DownloadMbps, double UploadMbps, double JitterMs);

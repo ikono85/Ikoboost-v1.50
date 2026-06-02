@@ -1,19 +1,13 @@
-using IkoboostWpf.Services;
-using IkoboostWpf.ViewModels;
 using System.Windows.Controls;
+using IkoboostWpf.ViewModels;
 
 namespace IkoboostWpf.Views;
 
 public partial class StartupPage : Page
 {
-    private readonly StartupViewModel _vm;
-
-    public StartupPage(StartupService startup)
+    public StartupPage(StartupViewModel vm)
     {
         InitializeComponent();
-        _vm = new StartupViewModel(startup);
-        DataContext = _vm;
-        Loaded += async (_, _) => await _vm.LoadAsync();
-        Unloaded += (_, _) => _vm.Dispose();
+        DataContext = vm;
     }
 }

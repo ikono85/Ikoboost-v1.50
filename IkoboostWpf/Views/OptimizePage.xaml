@@ -4,306 +4,159 @@
       Background="{DynamicResource BackgroundBrush}"
       Title="{DynamicResource Nav.Optimize}">
 
+  <Page.Resources>
+    <Style x:Key="Card" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="16"/>
+      <Setter Property="Margin" Value="0,0,0,14"/>
+    </Style>
+    <Style x:Key="TabRadio" TargetType="RadioButton">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Padding" Value="18,10"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border x:Name="Bd" CornerRadius="7" Padding="{TemplateBinding Padding}" Background="Transparent">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Page.Resources>
+
   <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="24">
-<TextBlock Text="{DynamicResource Optimize.Title}" FontSize="22" FontWeight="SemiBold"
-                 Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16"/>
+    <StackPanel Margin="24,18,24,28">
+      <TextBlock Text="Centre d'optimisation" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+      <TextBlock Text="Nettoyage - maintenance - performance"
+                 FontSize="11.5" FontFamily="Consolas" Foreground="{DynamicResource TextTertiaryBrush}" Margin="0,2,0,16"/>
 
-      <!-- 1. One-click maintenance -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <TextBlock Text="{DynamicResource Optimize.OneClick}" Style="{StaticResource SectionLabelStyle}"/>
-          <TextBlock Text="{DynamicResource Optimize.OneClickDescription}"
-                     Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,12"/>
-          <Button Content="{DynamicResource Optimize.RunFullMaintenance}" Style="{StaticResource PrimaryButtonStyle}"
-                  Command="{Binding OneClickMaintenanceCommand}" HorizontalAlignment="Left"/>
-        </StackPanel>
-      </Border>
-
-      <!-- 2. Nettoyage système -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <TextBlock Text="{DynamicResource Optimize.SystemCleanup}" Style="{StaticResource SectionLabelStyle}"/>
-          <StackPanel Orientation="Horizontal">
-            <Button Content="{DynamicResource Optimize.CleanTemp}" Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding CleanupCommand}" HorizontalAlignment="Left"/>
-            <Button Content="Nettoyage avancé des disques" Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding CleanDiskCommand}" HorizontalAlignment="Left" Margin="8,0,0,0"/>
+      <Border Style="{StaticResource Card}" Padding="20">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <Border Width="56" Height="56" CornerRadius="10" Background="{DynamicResource AccentBrush}">
+            <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" Foreground="#04222A" FontSize="28"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <StackPanel Grid.Column="1" Margin="18,0,0,0" VerticalAlignment="Center">
+            <TextBlock Text="Maintenance complète en 1 clic" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
+            <TextBlock Text="Nettoyage + mémoire + intégrité système + registre + point de restauration."
+                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
           </StackPanel>
+          <Button Grid.Column="2" Content="Lancer la maintenance" Style="{StaticResource PrimaryButtonStyle}"
+                  Command="{Binding OneClickMaintenanceCommand}" Height="40" Padding="22,0" VerticalAlignment="Center"/>
+        </Grid>
+      </Border>
+
+      <Border CornerRadius="8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+              Background="{DynamicResource SurfaceBrush}" Padding="4" HorizontalAlignment="Left" Margin="0,0,0,14">
+        <StackPanel Orientation="Horizontal">
+          <RadioButton Content="Nettoyage" GroupName="OptimizeTabs" Style="{StaticResource TabRadio}" IsChecked="True"
+                       Checked="Tab_Checked" Tag="Nettoyage"/>
+          <RadioButton Content="Sécurité" GroupName="OptimizeTabs" Style="{StaticResource TabRadio}" Checked="Tab_Checked" Tag="Sécurité"/>
+          <RadioButton Content="Performance" GroupName="OptimizeTabs" Style="{StaticResource TabRadio}" Checked="Tab_Checked" Tag="Performance"/>
+          <RadioButton Content="Débloat" GroupName="OptimizeTabs" Style="{StaticResource TabRadio}" Checked="Tab_Checked" Tag="Débloat"/>
+          <RadioButton Content="Stockage" GroupName="OptimizeTabs" Style="{StaticResource TabRadio}" Checked="Tab_Checked" Tag="Stockage"/>
         </StackPanel>
       </Border>
 
-      <!-- 3. Cleaner RAM -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <Grid Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*"/>
-              <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0">
-              <TextBlock Text="{DynamicResource Optimize.RamCleaner}" Style="{StaticResource SectionLabelStyle}"/>
-              <TextBlock Text="{DynamicResource Optimize.RamDescription}"
-                         Foreground="{DynamicResource TextSecondaryBrush}"/>
+      <Grid Visibility="{Binding SelectedOptimizationTab, Converter={StaticResource StringEqualsToVisConverter}, ConverterParameter=Nettoyage}">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,7,14" MinHeight="178">
+          <StackPanel>
+            <TextBlock Text="Nettoyage système" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Bold"/>
+            <TextBlock Text="Supprime les fichiers temporaires, caches et journaux inutiles." Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,14"/>
+            <StackPanel Orientation="Horizontal">
+              <Button Content="Nettoyer les temporaires" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding CleanupCommand}"/>
+              <Button Content="Nettoyage avancé" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding CleanDiskCommand}" Margin="8,0,0,0"/>
             </StackPanel>
-            <Button Grid.Column="1"
-                    Content="{DynamicResource Optimize.CleanRam}"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding CleanRamCommand}"/>
-          </Grid>
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Style="{StaticResource Card}" Margin="7,0,0,14" MinHeight="178">
+          <StackPanel>
+            <TextBlock Text="Nettoyeur de mémoire" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Bold"/>
+            <TextBlock Text="Libère la RAM mise en cache par les processus inactifs." Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,14"/>
+            <UniformGrid Columns="3" Margin="0,0,0,12">
+              <Border Style="{StaticResource Card}" Background="{DynamicResource SurfaceAltBrush}" Margin="0,0,6,0">
+                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="Consolas"><Run Text="AVANT&#x0a;"/><Run Text="{Binding RamBeforeCleanupMb, StringFormat='{}{0:N0}'}"/><Run Text=" Mo"/></TextBlock>
+              </Border>
+              <Border Style="{StaticResource Card}" Background="{DynamicResource SurfaceAltBrush}" Margin="6,0,6,0">
+                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="Consolas"><Run Text="APRÈS&#x0a;"/><Run Text="{Binding RamAfterCleanupMb, StringFormat='{}{0:N0}'}"/><Run Text=" Mo"/></TextBlock>
+              </Border>
+              <Border Style="{StaticResource Card}" Background="{DynamicResource SurfaceAltBrush}" Margin="6,0,0,0">
+                <TextBlock Foreground="{DynamicResource SuccessBrush}" FontFamily="Consolas"><Run Text="LIBÉRÉ&#x0a;"/><Run Text="{Binding RamFreedMb, StringFormat='{}{0:N0}'}"/><Run Text=" Mo"/></TextBlock>
+              </Border>
+            </UniformGrid>
+            <Button Content="Optimiser la mémoire" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding CleanRamCommand}" HorizontalAlignment="Left"/>
+          </StackPanel>
+        </Border>
+      </Grid>
 
-          <Grid>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*"/>
-              <ColumnDefinition Width="*"/>
-              <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+      <Grid Visibility="{Binding SelectedOptimizationTab, Converter={StaticResource StringEqualsToVisConverter}, ConverterParameter=Sécurité}">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,7,14">
+          <StackPanel><TextBlock Text="Point de restauration" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Bold"/><TextBlock Text="Crée une sauvegarde avant les changements système." Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,14"/><Button Content="Créer un point" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding CreateRestorePointCommand}" HorizontalAlignment="Left"/></StackPanel>
+        </Border>
+        <Border Grid.Column="1" Style="{StaticResource Card}" Margin="7,0,0,14">
+          <StackPanel><TextBlock Text="Réparation système" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Bold"/><TextBlock Text="Analyse SFC + DISM pour réparer Windows." Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,14"/><Button Content="Réparer le système" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding RepairSystemCommand}" HorizontalAlignment="Left"/></StackPanel>
+        </Border>
+      </Grid>
 
-            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,6,0">
-              <StackPanel>
-                <TextBlock Text="{DynamicResource Optimize.Before}" Style="{StaticResource SectionLabelStyle}"/>
-                <TextBlock Style="{StaticResource MetricValueStyle}">
-                  <Run Text="{Binding RamBeforeCleanupMb, StringFormat='{}{0:N0}'}"/><Run Text=" Mo"/>
-                </TextBlock>
-              </StackPanel>
-            </Border>
-
-            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="6,0,6,0">
-              <StackPanel>
-                <TextBlock Text="{DynamicResource Optimize.After}" Style="{StaticResource SectionLabelStyle}"/>
-                <TextBlock Style="{StaticResource MetricValueStyle}">
-                  <Run Text="{Binding RamAfterCleanupMb, StringFormat='{}{0:N0}'}"/><Run Text=" Mo"/>
-                </TextBlock>
-              </StackPanel>
-            </Border>
-
-            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="6,0,0,0">
-              <StackPanel>
-                <TextBlock Text="{DynamicResource Optimize.Freed}" Style="{StaticResource SectionLabelStyle}"/>
-                <TextBlock Foreground="{DynamicResource WarningBrush}" FontSize="28" FontWeight="Light">
-                  <Run Text="{Binding RamFreedMb, StringFormat='{}{0:N0}'}"/><Run Text=" Mo"/>
-                </TextBlock>
-              </StackPanel>
-            </Border>
-          </Grid>
+      <Border Style="{StaticResource Card}" Visibility="{Binding SelectedOptimizationTab, Converter={StaticResource StringEqualsToVisConverter}, ConverterParameter=Performance}">
+        <StackPanel>
+          <TextBlock Text="Plan d'alimentation" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Bold"/>
+          <TextBlock Text="Choisissez le profil de performance à appliquer." Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,14"/>
+          <StackPanel Orientation="Horizontal"><ComboBox ItemsSource="{Binding PowerPlans.Keys}" SelectedItem="{Binding SelectedPowerPlan}" Width="220"/><Button Content="Appliquer" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding SetPowerPlanCommand}" Margin="8,0,0,0"/></StackPanel>
         </StackPanel>
       </Border>
 
-      <!-- 4. Restauration -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+      <Border Style="{StaticResource Card}" Visibility="{Binding SelectedOptimizationTab, Converter={StaticResource StringEqualsToVisConverter}, ConverterParameter=Débloat}">
         <StackPanel>
-          <TextBlock Text="{DynamicResource Optimize.RestorePoint}" Style="{StaticResource SectionLabelStyle}"/>
-          <TextBlock Text="{DynamicResource Optimize.RestoreDescription}"
-                     Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,12"/>
-          <Button Content="{DynamicResource Optimize.CreateRestorePoint}"
-                  Style="{StaticResource PrimaryButtonStyle}"
-                  Command="{Binding CreateRestorePointCommand}"
-                  HorizontalAlignment="Left"/>
-        </StackPanel>
-      </Border>
-
-      <!-- 5. Réparation système [NOUVEAU] -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <TextBlock Text="Réparation système" Style="{StaticResource SectionLabelStyle}"/>
-          <TextBlock Text="Analyse et répare les fichiers système corrompus (SFC + DISM). Peut prendre plusieurs minutes."
-                     Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,12"/>
-          <Button Content="Réparer le registre" Style="{StaticResource PrimaryButtonStyle}"
-                  Command="{Binding RepairSystemCommand}" HorizontalAlignment="Left"/>
-        </StackPanel>
-      </Border>
-
-      <!-- 6. Profil alimentation -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <TextBlock Text="{DynamicResource Optimize.PowerPlan}" Style="{StaticResource SectionLabelStyle}"/>
+          <TextBlock Text="Optimisations registre et applications inutiles" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Bold"/>
+          <TextBlock Text="Sélectionnez les actions recommandées, puis appliquez uniquement ce que vous voulez." Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,14"/>
           <StackPanel Orientation="Horizontal">
-            <ComboBox ItemsSource="{Binding PowerPlans.Keys}"
-                      SelectedItem="{Binding SelectedPowerPlan}" Width="180"/>
-            <Button Content="{DynamicResource Common.Apply}" Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding SetPowerPlanCommand}" Margin="8,0,0,0"/>
+            <Button Content="Registre recommandé" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding SelectRecommendedRegistryOptimizationsCommand}"/>
+            <Button Content="Appliquer registre" Style="{StaticResource DangerButtonStyle}" Command="{Binding ApplySelectedRegistryOptimizationsCommand}" Margin="8,0,0,0"/>
+            <Button Content="Apps recommandées" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding SelectRecommendedBloatwareCommand}" Margin="8,0,0,0"/>
+            <Button Content="Désinstaller sélection" Style="{StaticResource DangerButtonStyle}" Command="{Binding UninstallSelectedBloatwareCommand}" Margin="8,0,0,0"/>
           </StackPanel>
         </StackPanel>
       </Border>
 
-      <!-- 7. Pilotes (Drivers) [NOUVEAU] -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+      <Border Style="{StaticResource Card}" Visibility="{Binding SelectedOptimizationTab, Converter={StaticResource StringEqualsToVisConverter}, ConverterParameter=Stockage}">
         <StackPanel>
-          <TextBlock Text="Pilotes (Drivers)" Style="{StaticResource SectionLabelStyle}"/>
-          <TextBlock Text="Affiche les pilotes installés et lance une recherche de mises à jour via Windows Update."
-                     Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-          <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-            <Button Content="Lister les pilotes" Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding LoadDriversCommand}"/>
-            <Button Content="Chercher des mises à jour" Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding ScanDriverUpdatesCommand}" Margin="8,0,0,0"/>
-          </StackPanel>
-          <TextBlock Text="{Binding DriverScanStatus}" Foreground="{DynamicResource TextSecondaryBrush}"
-                     Margin="0,6,0,6"/>
-          <DataGrid ItemsSource="{Binding InstalledDrivers}"
-                    MaxHeight="240"
-                    IsReadOnly="True"
-                    HeadersVisibility="Column"
-                    CanUserResizeRows="False"
-                    CanUserAddRows="False">
-            <DataGrid.Columns>
-              <DataGridTextColumn Header="Appareil"   Binding="{Binding DeviceName}"   Width="*"/>
-              <DataGridTextColumn Header="Fabricant"  Binding="{Binding ProviderName}" Width="160"/>
-              <DataGridTextColumn Header="Version"    Binding="{Binding DriverVersion}" Width="120"/>
-              <DataGridTextColumn Header="Date"       Binding="{Binding DriverDate}"   Width="100"/>
-            </DataGrid.Columns>
-          </DataGrid>
-        </StackPanel>
-      </Border>
-
-      <!-- 8. Registre -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <TextBlock Text="{DynamicResource Optimize.Registry}" Style="{StaticResource SectionLabelStyle}"/>
-          <TextBlock Text="{DynamicResource Optimize.RegistryDescription}"
-                     Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,12"/>
-
-          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-            <Button Content="{DynamicResource Optimize.RecommendedSelection}"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding SelectRecommendedRegistryOptimizationsCommand}"/>
-            <Button Content="{DynamicResource Optimize.ClearAll}"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding ClearRegistryOptimizationSelectionCommand}"
-                    Margin="8,0,0,0"/>
-            <Button Content="{DynamicResource Optimize.ApplySelection}"
-                    Style="{StaticResource DangerButtonStyle}"
-                    Command="{Binding ApplySelectedRegistryOptimizationsCommand}"
-                    Margin="8,0,0,0"/>
-          </StackPanel>
-
-          <DataGrid ItemsSource="{Binding RegistryOptimizations}"
-                    MaxHeight="260"
-                    HeadersVisibility="Column"
-                    CanUserResizeRows="False">
-            <DataGrid.Columns>
-              <DataGridCheckBoxColumn Header=""
-                                      Binding="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      Width="42"/>
-              <DataGridTextColumn Header="{DynamicResource Optimize.Registry}"
-                                  Binding="{Binding DisplayName}"
-                                  Width="190"
-                                  IsReadOnly="True"/>
-              <DataGridTextColumn Header="{DynamicResource Common.Action}"
-                                  Binding="{Binding Action}"
-                                  Width="120"
-                                  IsReadOnly="True"/>
-              <DataGridTextColumn Header="{DynamicResource Common.Value}"
-                                  Binding="{Binding ValueName}"
-                                  Width="170"
-                                  IsReadOnly="True"/>
-              <DataGridTextColumn Header="{DynamicResource Common.Description}"
-                                  Binding="{Binding Description}"
-                                  Width="*"
-                                  IsReadOnly="True"/>
-            </DataGrid.Columns>
-          </DataGrid>
-        </StackPanel>
-      </Border>
-
-      <!-- 9. Bloatwares -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <TextBlock Text="{DynamicResource Optimize.Bloatware}" Style="{StaticResource SectionLabelStyle}"/>
-          <TextBlock Text="{DynamicResource Optimize.BloatwareDescription}"
-                     Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,12"/>
-
-          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-            <Button Content="{DynamicResource Optimize.RecommendedSelection}"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding SelectRecommendedBloatwareCommand}"/>
-            <Button Content="{DynamicResource Optimize.ClearAll}"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding ClearBloatwareSelectionCommand}"
-                    Margin="8,0,0,0"/>
-            <Button Content="{DynamicResource Optimize.UninstallSelection}"
-                    Style="{StaticResource DangerButtonStyle}"
-                    Command="{Binding UninstallSelectedBloatwareCommand}"
-                    Margin="8,0,0,0"/>
-          </StackPanel>
-
-          <DataGrid ItemsSource="{Binding BloatwareApps}"
-                    MaxHeight="260"
-                    HeadersVisibility="Column"
-                    CanUserResizeRows="False">
-            <DataGrid.Columns>
-              <DataGridCheckBoxColumn Header=""
-                                      Binding="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      Width="42"/>
-              <DataGridTextColumn Header="{DynamicResource Nav.Applications}"
-                                  Binding="{Binding DisplayName}"
-                                  Width="180"
-                                  IsReadOnly="True"/>
-              <DataGridTextColumn Header="{DynamicResource Optimize.Package}"
-                                  Binding="{Binding PackageName}"
-                                  Width="240"
-                                  IsReadOnly="True"/>
-              <DataGridTextColumn Header="{DynamicResource Common.Description}"
-                                  Binding="{Binding Description}"
-                                  Width="*"
-                                  IsReadOnly="True"/>
-            </DataGrid.Columns>
-          </DataGrid>
-        </StackPanel>
-      </Border>
-
-      <!-- 10. Doublons de fichiers [NOUVEAU] -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <TextBlock Text="Doublons de fichiers" Style="{StaticResource SectionLabelStyle}"/>
-          <TextBlock Text="Scanne un dossier pour trouver les fichiers identiques et libérer de l'espace."
-                     Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-          <Grid Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*"/>
-              <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" Text="{Binding DuplicateScanPath, UpdateSourceTrigger=PropertyChanged}"
-                     VerticalContentAlignment="Center"/>
-            <Button Grid.Column="1" Content="Parcourir..." Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding ScanDuplicatesCommand}" Margin="8,0,0,0"/>
+          <TextBlock Text="Doublons de fichiers" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Bold"/>
+          <TextBlock Text="Scanne un dossier pour trouver les fichiers identiques." Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,14"/>
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <TextBox Text="{Binding DuplicateScanPath, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
+            <Button Grid.Column="1" Content="Scanner" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding ScanDuplicatesCommand}" Margin="8,0,0,0"/>
           </Grid>
-          <TextBlock Text="{Binding DuplicateScanStatus}" Foreground="{DynamicResource TextSecondaryBrush}"
-                     Margin="0,0,0,6"/>
-          <ItemsControl ItemsSource="{Binding DuplicateGroups}" Margin="0,0,0,8">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Expander Header="{Binding Header}" Margin="0,2,0,2">
-                  <ItemsControl ItemsSource="{Binding Files}" Margin="16,4,0,4">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate>
-                        <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
-                          <CheckBox IsChecked="{Binding IsSelectedForDelete, Mode=TwoWay}"
-                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
-                          <TextBlock Text="{Binding Path}" VerticalAlignment="Center"
-                                     Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="NoWrap"/>
-                        </StackPanel>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </Expander>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <Button Content="Supprimer les sélectionnés" Style="{StaticResource DangerButtonStyle}"
-                  Command="{Binding DeleteSelectedDuplicatesCommand}" HorizontalAlignment="Left"/>
+          <TextBlock Text="{Binding DuplicateScanStatus}" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="Consolas" Margin="0,10,0,0"/>
         </StackPanel>
       </Border>
 
-      <!-- 11. Log -->
-      <Border Style="{StaticResource CardStyle}">
+      <Border Style="{StaticResource Card}" Margin="0,0,0,0" MinHeight="140">
         <StackPanel>
-          <TextBlock Text="{DynamicResource Optimize.Log}" Style="{StaticResource SectionLabelStyle}"/>
-          <TextBlock Text="{Binding Log}" Foreground="{DynamicResource TextPrimaryBrush}"
-                     FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" MinHeight="80"/>
+          <TextBlock Text="JOURNAL D'ACTIVITÉ" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="Consolas" FontWeight="Bold" Margin="0,0,0,10"/>
+          <TextBlock Text="{Binding Log}" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="Consolas" TextWrapping="Wrap"/>
         </StackPanel>
       </Border>
-
     </StackPanel>
   </ScrollViewer>
 </Page>

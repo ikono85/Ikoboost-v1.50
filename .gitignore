@@ -3,11 +3,9 @@ bin/
 obj/
 **/bin/
 **/obj/
-Ikoboost-portable-safe/
 
 # Visual Studio local state
 .vs/
-.claude/
 
 # Publish outputs and standalone binaries
 .codex-build-output/

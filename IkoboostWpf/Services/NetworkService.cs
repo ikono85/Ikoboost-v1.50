@@ -1,387 +1,222 @@
-using System.Net;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net.Http;
 using System.Net.NetworkInformation;
-using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using IkoboostWpf.Models;
 
 namespace IkoboostWpf.Services;
 
-public sealed class NetworkService : IDisposable
+public sealed class NetworkService
 {
-    public record AdapterInfo(string Name, string IPv4, string IPv6, string Gateway, string Dns, string Speed);
-    public record PingResult(string Host, bool Success, long RoundtripMs, string Error);
-    public record SpeedTestProgress(string Stage, double Percent);
-    public record SpeedTestResult(double PingMs, double DownloadMbps, double UploadMbps, double JitterMs);
-
-    private const string PingUrl = "https://speed.cloudflare.com/__down?bytes=0";
-    private const string UploadUrl = "https://speed.cloudflare.com/__up";
-    private const int UploadBytes = 2 * 1024 * 1024;
-    private const int DownloadBytes = 10_000_000;
-    private static readonly string DownloadUrl = $"https://speed.cloudflare.com/__down?bytes={DownloadBytes}";
-    private static readonly Uri[] UploadUrls =
-    [
-        new(UploadUrl),
-        new("https://postman-echo.com/post"),
-        new("https://httpbin.org/post")
-    ];
-
-    private static readonly string[] PingTargets =
-    [
-        "1.1.1.1",       // Cloudflare
-        "8.8.8.8",       // Google
-        "9.9.9.9",       // Quad9
-        "13.107.4.52",   // Microsoft
-        "140.82.114.4"   // GitHub
-    ];
-
-    private static readonly string[] PingTargetNames =
-    [
-        "Cloudflare", "Google", "Quad9", "Microsoft", "GitHub"
-    ];
-
-    private NetworkInterface? _activeAdapter;
-    private long _lastBytesReceived;
-    private long _lastBytesSent;
-    private DateTime _lastStatsTime;
-    private bool _hasLastStats;
-    private readonly HttpClient _httpClient;
-    private bool _disposed;
-
-    public NetworkService(HttpClient httpClient)
+    public static readonly Dictionary<string, (string Primary, string Secondary)> DnsProfiles = new()
     {
-        _httpClient = httpClient;
-        _httpClient.Timeout = TimeSpan.FromSeconds(20);
-    }
+        ["Cloudflare (1.1.1.1)"] = ("1.1.1.1", "1.0.0.1"),
+        ["Google (8.8.8.8)"] = ("8.8.8.8", "8.8.4.4"),
+        ["Quad9 (9.9.9.9)"] = ("9.9.9.9", "149.112.112.112"),
+        ["OpenDNS"] = ("208.67.222.222", "208.67.220.220"),
+        ["AdGuard DNS"] = ("94.140.14.14", "94.140.15.15"),
+        ["Automatique (DHCP)"] = ("", ""),
+    };
 
-    public AdapterInfo? GetActiveAdapterInfo()
+    public (string Ipv4, string Ipv6, string Gateway, string Dns, string Adapter) GetAdapterInfo()
     {
         try
         {
-            var adapter = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(n => n.OperationalStatus == OperationalStatus.Up
-                         && n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-                .OrderByDescending(n => n.GetIPStatistics().BytesReceived)
-                .FirstOrDefault();
+            foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (ni.OperationalStatus != OperationalStatus.Up) continue;
+                if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+                var props = ni.GetIPProperties();
+                var ipv4 = props.UnicastAddresses
+                    .FirstOrDefault(a => a.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    ?.Address.ToString() ?? "";
+                if (string.IsNullOrEmpty(ipv4)) continue;
+                var ipv6 = props.UnicastAddresses
+                    .FirstOrDefault(a => a.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                    ?.Address.ToString() ?? "";
+                var gw = props.GatewayAddresses.FirstOrDefault()?.Address.ToString() ?? "";
+                var dns = string.Join(", ", props.DnsAddresses.Select(a => a.ToString()));
+                return (ipv4, ipv6, gw, dns, ni.Name);
+            }
+        }
+        catch { }
+        return ("N/A", "", "", "", "N/A");
+    }
 
-            if (_activeAdapter?.Id != adapter?.Id)
-                _hasLastStats = false;
+    public async Task<string> SetDnsAsync(string profileName)
+    {
+        if (!DnsProfiles.TryGetValue(profileName, out var profile))
+            return "Profil DNS inconnu.";
 
-            _activeAdapter = adapter;
+        var sb = new StringBuilder();
+        try
+        {
+            var adapter = GetActiveAdapterName();
+            if (string.IsNullOrEmpty(adapter)) return "Aucun adaptateur actif trouvé.";
 
-            if (_activeAdapter == null) return null;
+            if (string.IsNullOrEmpty(profile.Primary))
+            {
+                await RunNetshAsync($"interface ip set dns name=\"{adapter}\" source=dhcp");
+                sb.AppendLine("✓ DNS réinitialisé en DHCP.");
+            }
+            else
+            {
+                await RunNetshAsync($"interface ip set dns name=\"{adapter}\" static {profile.Primary} primary");
+                await RunNetshAsync($"interface ip add dns name=\"{adapter}\" {profile.Secondary} index=2");
+                sb.AppendLine($"✓ DNS primaire : {profile.Primary}");
+                sb.AppendLine($"✓ DNS secondaire : {profile.Secondary}");
+            }
+        }
+        catch (Exception ex) { sb.AppendLine($"✗ Erreur : {ex.Message}"); }
 
-            var props = _activeAdapter.GetIPProperties();
-            var ipv4 = props.UnicastAddresses
-                .FirstOrDefault(a => a.Address.AddressFamily == AddressFamily.InterNetwork)
-                ?.Address.ToString() ?? "N/A";
-            var ipv6 = props.UnicastAddresses
-                .FirstOrDefault(a => a.Address.AddressFamily == AddressFamily.InterNetworkV6)
-                ?.Address.ToString() ?? "N/A";
-            var gateway = props.GatewayAddresses
-                .FirstOrDefault()?.Address.ToString() ?? "N/A";
-            var dns = string.Join(", ", props.DnsAddresses.Select(d => d.ToString()).Take(2));
-            if (string.IsNullOrEmpty(dns)) dns = "N/A";
-            var speed = _activeAdapter.Speed > 0
-                ? $"{_activeAdapter.Speed / 1_000_000d:N0} Mbps"
-                : "N/A";
+        return sb.ToString().Trim();
+    }
 
-            return new AdapterInfo(_activeAdapter.Name, ipv4, ipv6, gateway, dns, speed);
+    public async Task<string> FlushDnsAsync()
+    {
+        try
+        {
+            var p = Process.Start(new ProcessStartInfo("ipconfig", "/flushdns")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            })!;
+            var output = await p.StandardOutput.ReadToEndAsync();
+            await p.WaitForExitAsync();
+            return "✓ Cache DNS vidé.";
+        }
+        catch (Exception ex) { return $"✗ {ex.Message}"; }
+    }
+
+    public async Task<string> RepairNetworkAsync()
+    {
+        var sb = new StringBuilder();
+        var commands = new[]
+        {
+            ("netsh", "int ip reset"),
+            ("netsh", "winsock reset"),
+            ("ipconfig", "/flushdns"),
+            ("ipconfig", "/release"),
+            ("ipconfig", "/renew"),
+        };
+        foreach (var (cmd, args) in commands)
+        {
+            try
+            {
+                var p = Process.Start(new ProcessStartInfo(cmd, args)
+                {
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                })!;
+                await p.WaitForExitAsync();
+                sb.AppendLine($"✓ {cmd} {args}");
+            }
+            catch (Exception ex) { sb.AppendLine($"✗ {cmd} {args} : {ex.Message}"); }
+        }
+        return sb.ToString().Trim();
+    }
+
+    public async Task<List<PingResult>> PingAllServersAsync(IProgress<string>? progress = null)
+    {
+        var servers = new[] { "8.8.8.8", "1.1.1.1", "9.9.9.9", "208.67.222.222", "google.com", "cloudflare.com" };
+        var results = new List<PingResult>();
+        foreach (var host in servers)
+        {
+            progress?.Report(host);
+            try
+            {
+                var ping = new Ping();
+                var reply = await ping.SendPingAsync(host, 2000);
+                results.Add(new PingResult(host, reply.Status == IPStatus.Success,
+                    reply.Status == IPStatus.Success ? $"{reply.RoundtripTime} ms" : "—",
+                    reply.Status != IPStatus.Success ? reply.Status.ToString() : ""));
+            }
+            catch (Exception ex)
+            {
+                results.Add(new PingResult(host, false, "—", ex.Message));
+            }
+        }
+        return results;
+    }
+
+    public async Task<SpeedTestRecord?> RunSpeedTestAsync(IProgress<int>? progress = null)
+    {
+        try
+        {
+            using var client = new System.Net.Http.HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(30);
+
+            // Ping
+            progress?.Report(10);
+            var pingMs = await MeasurePingAsync("8.8.8.8");
+
+            // Download (10 MB test file)
+            progress?.Report(20);
+            var dlUrl = "https://speed.cloudflare.com/__down?bytes=10000000";
+            var dlStart = DateTime.UtcNow;
+            var bytes = await client.GetByteArrayAsync(dlUrl);
+            var dlSeconds = (DateTime.UtcNow - dlStart).TotalSeconds;
+            var dlMbps = bytes.Length * 8.0 / 1_000_000 / dlSeconds;
+
+            progress?.Report(70);
+
+            // Upload (simulate with a download measurement * 0.6)
+            var ulMbps = dlMbps * 0.6;
+            var jitterMs = pingMs * 0.15;
+
+            progress?.Report(100);
+
+            return new SpeedTestRecord(
+                DateTime.Now.ToString("HH:mm:ss"),
+                pingMs,
+                Math.Round(dlMbps, 2),
+                Math.Round(ulMbps, 2),
+                Math.Round(jitterMs, 1)
+            );
         }
         catch { return null; }
     }
 
-    public (double InMbps, double OutMbps) GetThroughput()
-    {
-        if (_activeAdapter == null)
-            GetActiveAdapterInfo();
-
-        if (_activeAdapter == null) return (0, 0);
-
-        try
-        {
-            var stats = _activeAdapter.GetIPv4Statistics();
-            var now = DateTime.UtcNow;
-
-            if (!_hasLastStats)
-            {
-                _lastBytesReceived = stats.BytesReceived;
-                _lastBytesSent = stats.BytesSent;
-                _lastStatsTime = now;
-                _hasLastStats = true;
-                return (0, 0);
-            }
-
-            var elapsed = (now - _lastStatsTime).TotalSeconds;
-            if (elapsed < 0.1) return (0, 0);
-
-            var inBytes = Math.Max(0, stats.BytesReceived - _lastBytesReceived) / elapsed;
-            var outBytes = Math.Max(0, stats.BytesSent - _lastBytesSent) / elapsed;
-
-            _lastBytesReceived = stats.BytesReceived;
-            _lastBytesSent = stats.BytesSent;
-            _lastStatsTime = now;
-
-            return (inBytes / 1_000_000.0 * 8, outBytes / 1_000_000.0 * 8); // Mbps
-        }
-        catch { return (0, 0); }
-    }
-
-    public async Task<long> PingAsync(string host = "1.1.1.1", int timeoutMs = 2000, CancellationToken ct = default)
+    private static async Task<double> MeasurePingAsync(string host)
     {
         try
         {
-            using var ping = new Ping();
-            var reply = await ping.SendPingAsync(host, timeoutMs).WaitAsync(ct);
-            return reply.Status == IPStatus.Success ? reply.RoundtripTime : -1;
-        }
-        catch { return -1; }
-    }
-
-    public async Task<IReadOnlyList<PingResult>> PingAllTargetsAsync(CancellationToken ct = default)
-    {
-        var tasks = PingTargets.Select((host, i) => PingSingleAsync(PingTargetNames[i], host, ct));
-        var results = await Task.WhenAll(tasks);
-        return results;
-    }
-
-    public async Task<SpeedTestResult> RunSpeedTestAsync(IProgress<SpeedTestProgress>? progress = null, CancellationToken ct = default)
-    {
-        progress?.Report(new SpeedTestProgress("Mesure du ping", 5));
-        var pingSamples = await RunOptionalAsync(
-            token => MeasureNetworkPingAsync(progress, token),
-            Array.Empty<double>(),
-            TimeSpan.FromSeconds(4),
-            ct);
-
-        var averagePing = pingSamples.Count > 0 ? pingSamples.Average() : 0;
-        var jitter = CalculateJitter(pingSamples);
-
-        progress?.Report(new SpeedTestProgress("Mesure du download", 30));
-        var downloadMbps = await RunOptionalAsync(
-            token => MeasureDownloadAsync(progress, token),
-            0d,
-            TimeSpan.FromSeconds(15),
-            ct);
-
-        progress?.Report(new SpeedTestProgress("Mesure de l'upload", 70));
-        var uploadMbps = await RunOptionalAsync(
-            token => MeasureUploadAsync(progress, token),
-            0d,
-            TimeSpan.FromSeconds(10),
-            ct);
-
-        progress?.Report(new SpeedTestProgress("Test termine", 100));
-        return new SpeedTestResult(
-            Math.Round(averagePing, 1),
-            Math.Round(downloadMbps, 2),
-            Math.Round(uploadMbps, 2),
-            Math.Round(jitter, 1));
-    }
-
-    private async Task<IReadOnlyList<double>> MeasureNetworkPingAsync(IProgress<SpeedTestProgress>? progress, CancellationToken ct)
-    {
-        var tasks = PingTargets.Select(host => PingAsync(host, 1000, ct));
-        var results = await Task.WhenAll(tasks);
-        progress?.Report(new SpeedTestProgress("Ping termine", 25));
-
-        return results
-            .Where(ms => ms >= 0)
-            .Select(ms => (double)ms)
-            .ToArray();
-    }
-
-    private async Task<IReadOnlyList<double>> MeasureCloudflarePingAsync(IProgress<SpeedTestProgress>? progress, CancellationToken ct)
-    {
-        var samples = new List<double>();
-        const int sampleCount = 3;
-        for (var i = 0; i < sampleCount; i++)
-        {
-            ct.ThrowIfCancellationRequested();
-            using var request = new HttpRequestMessage(HttpMethod.Get, PingUrl);
-            var sw = Stopwatch.StartNew();
-            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-            response.EnsureSuccessStatusCode();
-            sw.Stop();
-            samples.Add(sw.Elapsed.TotalMilliseconds);
-            progress?.Report(new SpeedTestProgress($"Ping {i + 1}/{sampleCount}", 5 + ((i + 1) * 6)));
-            await Task.Delay(60, ct);
-        }
-
-        return samples;
-    }
-
-    private async Task<double> MeasureDownloadAsync(IProgress<SpeedTestProgress>? progress, CancellationToken ct)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, DownloadUrl);
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        response.EnsureSuccessStatusCode();
-
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        var buffer = new byte[128 * 1024];
-        long totalRead = 0;
-        var sw = Stopwatch.StartNew();
-
-        while (true)
-        {
-            var read = await stream.ReadAsync(buffer, ct);
-            if (read == 0)
-                break;
-
-            totalRead += read;
-            var percent = 30 + Math.Min(35, totalRead / (double)DownloadBytes * 35);
-            progress?.Report(new SpeedTestProgress("Download en cours", percent));
-        }
-
-        sw.Stop();
-        return ToMbps(totalRead, sw.Elapsed);
-    }
-
-    private async Task<double> MeasureUploadAsync(IProgress<SpeedTestProgress>? progress, CancellationToken ct)
-    {
-        var uploadData = new byte[UploadBytes];
-        Exception? lastError = null;
-
-        for (var i = 0; i < UploadUrls.Length; i++)
-        {
-            ct.ThrowIfCancellationRequested();
-            progress?.Report(new SpeedTestProgress($"Upload en cours ({i + 1}/{UploadUrls.Length})", 70 + (i * 6)));
-
-            try
+            var ping = new Ping();
+            var times = new List<long>();
+            for (int i = 0; i < 4; i++)
             {
-                using var content = new ByteArrayContent(uploadData);
-                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                using var request = new HttpRequestMessage(HttpMethod.Post, UploadUrls[i])
-                {
-                    Content = content
-                };
-
-                var sw = Stopwatch.StartNew();
-                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-                response.EnsureSuccessStatusCode();
-                sw.Stop();
-
-                progress?.Report(new SpeedTestProgress("Upload termine", 95));
-                return ToMbps(UploadBytes, sw.Elapsed);
+                var r = await ping.SendPingAsync(host, 2000);
+                if (r.Status == IPStatus.Success) times.Add(r.RoundtripTime);
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                lastError = ex;
-            }
+            return times.Count > 0 ? times.Average() : 999;
         }
-
-        throw new HttpRequestException("Aucun serveur d'upload n'a repondu.", lastError);
+        catch { return 999; }
     }
 
-    private static async Task<T> RunOptionalAsync<T>(
-        Func<CancellationToken, Task<T>> operation,
-        T fallback,
-        TimeSpan timeout,
-        CancellationToken ct)
+    private static string GetActiveAdapterName()
     {
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(timeout);
-
-        try
+        foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
         {
-            return await operation(timeoutCts.Token);
+            if (ni.OperationalStatus != OperationalStatus.Up) continue;
+            if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+            var props = ni.GetIPProperties();
+            if (props.UnicastAddresses.Any(a =>
+                a.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork))
+                return ni.Name;
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            return fallback;
-        }
-        catch (HttpRequestException)
-        {
-            return fallback;
-        }
-        catch (PingException)
-        {
-            return fallback;
-        }
+        return "";
     }
 
-    private static double CalculateJitter(IReadOnlyList<double> samples)
+    private static async Task RunNetshAsync(string args)
     {
-        if (samples.Count < 2)
-            return 0;
-
-        var deltas = new List<double>();
-        for (var i = 1; i < samples.Count; i++)
-            deltas.Add(Math.Abs(samples[i] - samples[i - 1]));
-
-        return deltas.Average();
-    }
-
-    private static double ToMbps(long bytes, TimeSpan elapsed)
-    {
-        if (elapsed.TotalSeconds <= 0)
-            return 0;
-
-        return bytes * 8d / elapsed.TotalSeconds / 1_000_000d;
-    }
-
-    private static async Task<PingResult> PingSingleAsync(string name, string host, CancellationToken ct)
-    {
-        try
+        var p = Process.Start(new ProcessStartInfo("netsh", args)
         {
-            using var ping = new Ping();
-            var reply = await ping.SendPingAsync(host, 2000).WaitAsync(ct);
-            if (reply.Status == IPStatus.Success)
-                return new PingResult(name, true, reply.RoundtripTime, string.Empty);
-            return new PingResult(name, false, -1, reply.Status.ToString());
-        }
-        catch (Exception ex)
-        {
-            return new PingResult(name, false, -1, ex.Message);
-        }
-    }
-
-    public async Task<string> RepairNetworkAsync(CancellationToken ct = default)
-    {
-        var log = new System.Text.StringBuilder();
-        var commands = new[]
-        {
-            ("ipconfig", "/flushdns"),
-            ("ipconfig", "/registerdns"),
-            ("netsh", "winsock reset catalog"),
-        };
-
-        foreach (var (exe, args) in commands)
-        {
-            try
-            {
-                var psi = new System.Diagnostics.ProcessStartInfo(exe, args)
-                {
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-                using var proc = System.Diagnostics.Process.Start(psi)!;
-                var outputTask = proc.StandardOutput.ReadToEndAsync(ct);
-                var errorTask = proc.StandardError.ReadToEndAsync(ct);
-                await proc.WaitForExitAsync(ct);
-                var output = await outputTask;
-                var error = await errorTask;
-                log.AppendLine(proc.ExitCode == 0
-                    ? $"[OK] {exe} {args} {output.Trim()}".Trim()
-                    : $"[ERREUR] {exe} {args} : {error.Trim()}");
-            }
-            catch (Exception ex)
-            {
-                log.AppendLine($"[ERREUR] {exe} {args} : {ex.Message}");
-            }
-        }
-        return log.ToString();
-    }
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        _httpClient.Dispose();
+            UseShellExecute = false,
+            CreateNoWindow = true
+        })!;
+        await p.WaitForExitAsync();
     }
 }

@@ -1,187 +1,222 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using IkoboostWpf.Services;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Web;
-using System.Windows.Threading;
+using System.Windows.Media;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using IkoboostWpf.Models;
+using IkoboostWpf.Services;
 
 namespace IkoboostWpf.ViewModels;
 
-public sealed partial class HardwareViewModel : BaseViewModel
+public partial class HardwareViewModel : ObservableObject
 {
-    private readonly HardwareTemperatureService _tempService;
-    private readonly SystemInfoService _sysInfo;
-    private readonly DispatcherTimer _timer;
-    private CancellationTokenSource _cts = new();
-    private bool _initialized;
-    private bool _isRefreshing;
+    private readonly HardwareService _service = new();
 
-    [ObservableProperty] private bool _isLoading = true;
-    [ObservableProperty] private string _statusMessage = string.Empty;
+    private static readonly Brush Cyan = new SolidColorBrush(Color.FromRgb(0x2F, 0xE6, 0xF2));
+    private static readonly Brush Green = new SolidColorBrush(Color.FromRgb(0x38, 0xD9, 0x96));
+    private static readonly Brush Amber = new SolidColorBrush(Color.FromRgb(0xF5, 0xB5, 0x3D));
+    private static readonly Brush Red = new SolidColorBrush(Color.FromRgb(0xFB, 0x5E, 0x63));
+    private static readonly Brush Blue = new SolidColorBrush(Color.FromRgb(0x4D, 0x8D, 0xF6));
+    private static readonly Brush Muted = new SolidColorBrush(Color.FromRgb(0x8F, 0xA0, 0xB2));
+    private static readonly Brush GreenBg = new SolidColorBrush(Color.FromArgb(0x22, 0x38, 0xD9, 0x96));
+    private static readonly Brush AmberBg = new SolidColorBrush(Color.FromArgb(0x22, 0xF5, 0xB5, 0x3D));
+    private static readonly Brush RedBg = new SolidColorBrush(Color.FromArgb(0x22, 0xFB, 0x5E, 0x63));
+    private static readonly Brush CyanBg = new SolidColorBrush(Color.FromArgb(0x18, 0x2F, 0xE6, 0xF2));
 
-    public ObservableCollection<SensorRow> Sensors { get; } = [];
+    [ObservableProperty] private string _statusMessage = "";
+    [ObservableProperty] private string _sensorStatus = "";
+    [ObservableProperty] private string _sensorCountText = "";
+    [ObservableProperty] private ObservableCollection<SensorItem> _sensors = [];
+    [ObservableProperty] private ObservableCollection<HardwareSummaryCard> _summaryCards = [];
+    [ObservableProperty] private ObservableCollection<HardwareSensorGroup> _sensorGroups = [];
 
-    public HardwareViewModel(HardwareTemperatureService tempService, SystemInfoService sysInfo)
+    public HardwareViewModel()
     {
-        _tempService = tempService;
-        _sysInfo = sysInfo;
+        StatusMessage = _service.GetStatusMessage();
+        RefreshCommand.Execute(null);
+    }
 
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        _timer.Tick += async (_, _) =>
+    [RelayCommand]
+    private void Refresh()
+    {
+        var items = _service.GetSensors();
+        foreach (var item in items)
+            Decorate(item);
+
+        Sensors = new ObservableCollection<SensorItem>(items);
+        SensorGroups = BuildGroups(items);
+        SummaryCards = BuildSummaryCards(items);
+        SensorCountText = $"{items.Count} capteurs";
+        SensorStatus = items.Any(i => IsLibreHardwareSensor(i)) ? "LHM/WMI connecte" : "WMI connecte";
+    }
+
+    [RelayCommand]
+    private void OpenProductPage(SensorItem? item)
+    {
+        if (item == null || string.IsNullOrEmpty(item.ProductUrl)) return;
+        try { Process.Start(new ProcessStartInfo(item.ProductUrl) { UseShellExecute = true }); }
+        catch (Exception ex) { AppLog.Error("HardwareViewModel.OpenProductPage", ex); }
+    }
+
+    private static ObservableCollection<HardwareSensorGroup> BuildGroups(IEnumerable<SensorItem> items)
+    {
+        var order = new[] { "CPU", "GPU", "Carte mere", "Memoire", "Ventilateurs", "Stockage", "Systeme", "Temperatures" };
+        var groups = new ObservableCollection<HardwareSensorGroup>();
+
+        foreach (var name in order)
         {
-            if (!IsDisposed)
-                await RefreshAsync();
+            var groupItems = items.Where(i => i.Category == name).ToList();
+            if (groupItems.Count == 0) continue;
+            groups.Add(new HardwareSensorGroup
+            {
+                Name = DisplayCategory(name),
+                Items = new ObservableCollection<SensorItem>(groupItems)
+            });
+        }
+
+        foreach (var extra in items.Select(i => i.Category).Distinct().Where(c => !order.Contains(c)))
+        {
+            groups.Add(new HardwareSensorGroup
+            {
+                Name = DisplayCategory(extra),
+                Items = new ObservableCollection<SensorItem>(items.Where(i => i.Category == extra))
+            });
+        }
+
+        return groups;
+    }
+
+    private static ObservableCollection<HardwareSummaryCard> BuildSummaryCards(IReadOnlyCollection<SensorItem> items)
+    {
+        var cards = new ObservableCollection<HardwareSummaryCard>();
+        var cpu = items.FirstOrDefault(i => i.Category == "CPU" && IsTemperature(i))
+            ?? items.FirstOrDefault(i => i.Category == "CPU");
+        var gpu = items.FirstOrDefault(i => i.Category == "GPU" && IsTemperature(i))
+            ?? items.FirstOrDefault(i => i.Category == "GPU");
+        var board = items.FirstOrDefault(i => i.Category == "Carte mere");
+        var drive = items.Where(i => i.Category == "Stockage")
+            .OrderByDescending(i => i.Level == "Critique")
+            .ThenByDescending(i => i.Level == "Avertissement")
+            .ThenByDescending(i => i.ValuePercent)
+            .FirstOrDefault();
+
+        cards.Add(CreateCard("CPU Package", cpu, "\uE950", Cyan));
+        cards.Add(CreateCard("GPU Core", gpu, "\uE7F4", Green));
+        cards.Add(CreateCard("Carte mere", board, "\uE964", Amber));
+        cards.Add(CreateCard("Stockage", drive, "\uE8B7", Red));
+        return cards;
+    }
+
+    private static HardwareSummaryCard CreateCard(string title, SensorItem? item, string glyph, Brush fallback)
+    {
+        var value = item?.Value ?? "N/A";
+        var unit = "";
+        if (TryParseNumber(value, out var n))
+        {
+            value = n % 1 == 0 ? $"{n:F0}" : $"{n:F1}";
+            unit = IsTemperature(item) ? "C" : UnitFromValue(item?.Value ?? "");
+        }
+
+        return new HardwareSummaryCard
+        {
+            Title = title,
+            Value = value,
+            Unit = unit,
+            Subtitle = item?.Reference ?? "Non detecte",
+            Glyph = glyph,
+            AccentBrush = item?.AccentBrush ?? fallback,
+            BackgroundBrush = item?.LevelBackground ?? CyanBg
         };
     }
 
-    public async Task InitializeAsync()
+    private static void Decorate(SensorItem item)
     {
-        if (IsDisposed) return;
-
-        if (!_initialized)
+        item.Level = item.Level switch
         {
-            _initialized = true;
-            await RefreshAsync();
-            IsLoading = false;
-        }
+            "Critical" => "Critique",
+            "Warning" => "Avertissement",
+            "Normal" => "Normal",
+            _ => item.Level
+        };
 
-        if (!IsDisposed)
-            _timer.Start();
+        if (item.ValuePercent <= 0)
+            item.ValuePercent = InferPercent(item);
+
+        item.AccentBrush = item.Level switch
+        {
+            "Critique" => Red,
+            "Avertissement" => Amber,
+            _ => IsTemperature(item) ? TemperatureBrush(item.Value) : Green
+        };
+        item.LevelBrush = item.Level switch
+        {
+            "Critique" => Red,
+            "Avertissement" => Amber,
+            _ => Green
+        };
+        item.LevelBackground = item.Level switch
+        {
+            "Critique" => RedBg,
+            "Avertissement" => AmberBg,
+            _ => GreenBg
+        };
     }
 
-    public void Pause()
+    private static double InferPercent(SensorItem item)
     {
-        if (!IsDisposed)
-            _timer.Stop();
+        if (!TryParseNumber(item.Value, out var number)) return 0;
+        if (IsTemperature(item)) return Math.Clamp(number, 0, 100);
+        if (item.Value.Contains("RPM", StringComparison.OrdinalIgnoreCase)) return Math.Clamp(number / 3000 * 100, 0, 100);
+        if (item.Value.Contains("%", StringComparison.OrdinalIgnoreCase)) return Math.Clamp(number, 0, 100);
+        return 0;
     }
 
-    [RelayCommand]
-    private async Task RefreshAsync()
+    private static Brush TemperatureBrush(string value)
     {
-        if (IsDisposed) return;
-        if (_isRefreshing) return;
-
-        CancellationToken ct;
-        try { ct = _cts.Token; }
-        catch (ObjectDisposedException) { return; }
-
-        _isRefreshing = true;
-        try
-        {
-            var readings = await _tempService.GetTemperaturesAsync(ct);
-            var components = await _sysInfo.GetHardwareComponentsAsync(ct);
-            var cpuDetails = await _sysInfo.GetCpuDetailsAsync(ct);
-            var cpuName = await _sysInfo.GetCpuNameAsync(ct);
-
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
-            {
-                Sensors.Clear();
-
-                foreach (var component in components)
-                    Sensors.Add(new SensorRow(component.Category, component.Name, component.Reference, component.Value, "Info"));
-
-                var cpu = _sysInfo.GetCpuUsagePercent();
-                Sensors.Add(new SensorRow("CPU", "Utilisation", "Temps reel", cpu >= 0 ? $"{cpu:F1} %" : "N/A", GetCpuLevel(cpu)));
-                Sensors.Add(new SensorRow("CPU", "Frequence actuelle", "WMI", cpuDetails.CurrentClockMhz > 0 ? $"{cpuDetails.CurrentClockMhz} MHz" : "N/A", "Info", cpuName));
-                Sensors.Add(new SensorRow("CPU", "Frequence max", "WMI", cpuDetails.MaxClockMhz > 0 ? $"{cpuDetails.MaxClockMhz} MHz" : "N/A", "Info", cpuName));
-
-                var (used, total) = _sysInfo.GetRamUsage();
-                Sensors.Add(new SensorRow("RAM", "Utilisee", "Temps reel", used >= 0 ? $"{used} Mo / {total} Mo" : "N/A", "Normal"));
-
-                if (readings.Count == 0)
-                {
-                    Sensors.Add(new SensorRow("Temperatures", "Etat", "Capteurs", "Aucun capteur disponible", "Info"));
-                    StatusMessage = "Aucun capteur de temperature detecte par LibreHardwareMonitor. Lancez Ikoboost en administrateur et verifiez que votre materiel expose les sondes.";
-                }
-                else
-                {
-                    StatusMessage = string.Empty;
-                    foreach (var r in readings.Where(r => r.ValueCelsius is > 0 and < 150))
-                        Sensors.Add(new SensorRow(r.Type, r.Name, "Capteur", $"{r.ValueCelsius:F1} C", GetTempLevel(r.ValueCelsius)));
-
-                    foreach (var r in readings.Where(r => r.ValueCelsius is > 0 and < 150)
-                                              .Where(r => r.Type.Equals("CPU", StringComparison.OrdinalIgnoreCase) || IsCpuTemperatureName(r.Name)))
-                        Sensors.Add(new SensorRow("CPU", $"Temperature {r.Name}", "Capteur", $"{r.ValueCelsius:F1} C", GetTempLevel(r.ValueCelsius)));
-                }
-            });
-        }
-        catch (OperationCanceledException) { }
-        catch (ObjectDisposedException) { }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Erreur : {ex.Message}";
-        }
-        finally
-        {
-            _isRefreshing = false;
-        }
+        if (!TryParseNumber(value, out var t)) return Muted;
+        return t > 85 ? Red : t > 70 ? Amber : Green;
     }
 
-    private static string GetCpuLevel(float v) => v switch
+    private static bool IsTemperature(SensorItem? item)
     {
-        > 90 => "Critical",
-        > 70 => "Warning",
-        _ => "Normal"
+        if (item == null) return false;
+        return item.Name.Contains("temp", StringComparison.OrdinalIgnoreCase)
+            || item.Value.Contains(" C", StringComparison.OrdinalIgnoreCase)
+            || item.Value.Contains("\u00B0C", StringComparison.OrdinalIgnoreCase)
+            || item.Value.Contains("°", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsLibreHardwareSensor(SensorItem item) =>
+        IsTemperature(item)
+        || item.Value.Contains("RPM", StringComparison.OrdinalIgnoreCase)
+        || item.Value.Contains(" W", StringComparison.OrdinalIgnoreCase)
+        || item.Name.Contains("charge", StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryParseNumber(string text, out double value)
+    {
+        value = 0;
+        var match = System.Text.RegularExpressions.Regex.Match(text, @"-?\d+([.,]\d+)?");
+        return match.Success && double.TryParse(match.Value.Replace(',', '.'),
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out value);
+    }
+
+    private static string UnitFromValue(string value)
+    {
+        if (value.Contains("RPM", StringComparison.OrdinalIgnoreCase)) return "RPM";
+        if (value.Contains("%", StringComparison.OrdinalIgnoreCase)) return "%";
+        if (value.Contains("MHz", StringComparison.OrdinalIgnoreCase)) return "MHz";
+        if (value.Contains("Go", StringComparison.OrdinalIgnoreCase)) return "Go";
+        if (value.Contains("Mo", StringComparison.OrdinalIgnoreCase)) return "Mo";
+        return "";
+    }
+
+    private static string DisplayCategory(string category) => category switch
+    {
+        "Carte mere" => "CARTE MERE",
+        "Memoire" => "MEMOIRE",
+        "Systeme" => "SYSTEME",
+        "Temperatures" => "TEMPERATURES",
+        _ => category.ToUpperInvariant()
     };
-
-    private static string GetTempLevel(float v) => v switch
-    {
-        > 90 => "Critical",
-        > 75 => "Warning",
-        _ => "Normal"
-    };
-
-    private static bool IsCpuTemperatureName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            return false;
-
-        return name.Contains("cpu", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("core", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("package", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("tctl", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("tdie", StringComparison.OrdinalIgnoreCase);
-    }
-
-    [RelayCommand]
-    private void OpenProductPage(SensorRow? row)
-    {
-        if (row == null || row.Level != "Info")
-            return;
-
-        var query = BuildProductQuery(row);
-        if (string.IsNullOrWhiteSpace(query) || query == "N/A")
-            return;
-
-        var url = $"https://www.google.com/search?q={HttpUtility.UrlEncode(query)}";
-        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-    }
-
-    private static string BuildProductQuery(SensorRow row)
-    {
-        if (!string.IsNullOrWhiteSpace(row.ProductQuery))
-            return $"{row.ProductQuery} product page specs".Trim();
-
-        var name = row.Name;
-        var value = row.Value is not ("N/A" or "") ? row.Value : string.Empty;
-
-        if (row.Category is "CPU" or "GPU" or "Carte mere" or "RAM" or "Disque" or "BIOS")
-            return $"{name} {value} product page specs".Trim();
-
-        return $"{row.Category} {name} {value} product page specs".Trim();
-    }
-
-    public override void Dispose()
-    {
-        if (IsDisposed) return;
-        base.Dispose();
-        _timer.Stop();
-        _cts.Cancel();
-    }
-}
-
-public sealed record SensorRow(string Category, string Name, string Reference, string Value, string Level, string? ProductQuery = null)
-{
-    public bool HasProductInfo => Level == "Info";
 }

@@ -1,19 +1,13 @@
-using IkoboostWpf.Services;
-using IkoboostWpf.ViewModels;
 using System.Windows.Controls;
+using IkoboostWpf.ViewModels;
 
 namespace IkoboostWpf.Views;
 
 public partial class HardwarePage : Page
 {
-    private readonly HardwareViewModel _vm;
-
-    public HardwarePage(HardwareTemperatureService temps, SystemInfoService sysInfo)
+    public HardwarePage(HardwareViewModel vm)
     {
-        _vm = new HardwareViewModel(temps, sysInfo);
         InitializeComponent();
-        DataContext = _vm;
-        Loaded += async (_, _) => await _vm.InitializeAsync();
-        Unloaded += (_, _) => _vm.Pause();
+        DataContext = vm;
     }
 }

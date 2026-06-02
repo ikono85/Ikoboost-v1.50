@@ -4,42 +4,188 @@
       Background="{DynamicResource BackgroundBrush}"
       Title="{DynamicResource Processes.Title}">
 
-  <DockPanel Margin="24">
+  <Page.Resources>
+    <Style x:Key="HeaderText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/>
+      <Setter Property="FontFamily" Value="Consolas"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+    <Style x:Key="ProcessCell" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="ProcessGrid" TargetType="DataGrid">
+      <Setter Property="AutoGenerateColumns" Value="False"/>
+      <Setter Property="CanUserAddRows" Value="False"/>
+      <Setter Property="CanUserResizeRows" Value="False"/>
+      <Setter Property="CanUserSortColumns" Value="False"/>
+      <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+      <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderBrush}"/>
+      <Setter Property="HeadersVisibility" Value="Column"/>
+      <Setter Property="IsReadOnly" Value="True"/>
+      <Setter Property="RowHeight" Value="42"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="ColumnHeaderStyle">
+        <Setter.Value>
+          <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="SeparatorVisibility" Value="Collapsed"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+          </Style>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="CellStyle">
+        <Setter.Value>
+          <Style TargetType="DataGridCell">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Template">
+              <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                  <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter VerticalAlignment="Center"/>
+                  </Border>
+                </ControlTemplate>
+              </Setter.Value>
+            </Setter>
+          </Style>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="RowStyle">
+        <Setter.Value>
+          <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+              </Trigger>
+            </Style.Triggers>
+          </Style>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Page.Resources>
 
-    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-<TextBlock Text="{DynamicResource Processes.Title}" FontSize="22" FontWeight="SemiBold"
-                 Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-
-      <StackPanel Orientation="Horizontal">
-        <TextBox x:Name="SearchBox" Width="220" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+  <DockPanel Margin="24,18,24,24">
+    <Grid DockPanel.Dock="Top" Margin="0,0,0,14">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <StackPanel>
+        <TextBlock Text="{DynamicResource Processes.Title}" FontSize="20" FontWeight="Bold"
+                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+        <TextBlock Text="Utilisation CPU - memoire - priorite - editeur"
+                   FontSize="11.5" FontFamily="Consolas"
+                   Foreground="{DynamicResource TextTertiaryBrush}" Margin="0,2,0,0"/>
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+        <TextBox Width="240" Height="32"
+                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                  Tag="{DynamicResource Common.SearchProcesses}"/>
         <Button Content="{Binding AutoRefreshButtonText}"
                 Command="{Binding ToggleAutoRefreshCommand}"
-                Style="{StaticResource PrimaryButtonStyle}"
+                Style="{StaticResource SecondaryButtonStyle}"
+                Height="32"
                 Margin="8,0,0,0"/>
       </StackPanel>
-    </StackPanel>
+    </Grid>
 
     <DataGrid x:Name="ProcessesGrid"
+              Style="{StaticResource ProcessGrid}"
               ItemsSource="{Binding Processes}"
               SelectedItem="{Binding SelectedProcess}"
-              IsReadOnly="True"
               PreviewMouseRightButtonDown="ProcessesGrid_PreviewMouseRightButtonDown"
               LoadingRow="ProcessesGrid_LoadingRow">
       <DataGrid.Columns>
-        <DataGridTextColumn Header="PID"         Binding="{Binding Pid}"         Width="60"/>
-        <DataGridTextColumn Header="{DynamicResource Common.Name}" Binding="{Binding Name}"        Width="170"/>
-        <DataGridTextColumn Header="{DynamicResource Processes.CpuColumn}"
-                            Binding="{Binding CpuPercent, StringFormat='{}{0:F1}'}"
-                            Width="70"/>
-        <DataGridTextColumn Header="{DynamicResource Processes.RamColumn}"
-                            Binding="{Binding MemoryMb}"
-                            Width="80"/>
-        <DataGridTextColumn Header="{DynamicResource Processes.Priority}" Binding="{Binding Priority}"    Width="110"/>
-        <DataGridTextColumn Header="{DynamicResource Common.Description}" Binding="{Binding Description}" Width="*"/>
-        <DataGridTextColumn Header="{DynamicResource Processes.Publisher}" Binding="{Binding Publisher}" Width="150"/>
+        <DataGridTemplateColumn Width="70">
+          <DataGridTemplateColumn.HeaderTemplate>
+            <DataTemplate><TextBlock Text="PID" Style="{StaticResource HeaderText}"/></DataTemplate>
+          </DataGridTemplateColumn.HeaderTemplate>
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate><TextBlock Text="{Binding Pid}" Style="{StaticResource ProcessCell}" FontFamily="Consolas"/></DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+
+        <DataGridTemplateColumn Width="220">
+          <DataGridTemplateColumn.HeaderTemplate>
+            <DataTemplate><TextBlock Text="NOM" Style="{StaticResource HeaderText}"/></DataTemplate>
+          </DataGridTemplateColumn.HeaderTemplate>
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}"
+                         FontSize="13" FontWeight="Bold" VerticalAlignment="Center"/>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+
+        <DataGridTemplateColumn Width="170">
+          <DataGridTemplateColumn.HeaderTemplate>
+            <DataTemplate><TextBlock Text="CPU" Style="{StaticResource HeaderText}"/></DataTemplate>
+          </DataGridTemplateColumn.HeaderTemplate>
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="58"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Foreground="{Binding CpuBrush}" FontFamily="Consolas" FontSize="13" FontWeight="Bold" VerticalAlignment="Center">
+                  <Run Text="{Binding CpuPercent, StringFormat='{}{0:F1}'}"/><Run Text="%"/>
+                </TextBlock>
+                <ProgressBar Grid.Column="1" Value="{Binding CpuPercent}" Maximum="20"
+                             Foreground="{Binding CpuBrush}" Height="5"
+                             Margin="8,0,18,0" VerticalAlignment="Center"/>
+              </Grid>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+
+        <DataGridTemplateColumn Width="150">
+          <DataGridTemplateColumn.HeaderTemplate>
+            <DataTemplate><TextBlock Text="MÉMOIRE" Style="{StaticResource HeaderText}"/></DataTemplate>
+          </DataGridTemplateColumn.HeaderTemplate>
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <TextBlock Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Consolas" FontSize="13" FontWeight="Bold" VerticalAlignment="Center">
+                <Run Text="{Binding MemoryMb}"/><Run Text=" Mo"/>
+              </TextBlock>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+
+        <DataGridTemplateColumn Width="150">
+          <DataGridTemplateColumn.HeaderTemplate>
+            <DataTemplate><TextBlock Text="PRIORITÉ" Style="{StaticResource HeaderText}"/></DataTemplate>
+          </DataGridTemplateColumn.HeaderTemplate>
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate><TextBlock Text="{Binding Priority}" Style="{StaticResource ProcessCell}"/></DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+
+        <DataGridTemplateColumn Width="*">
+          <DataGridTemplateColumn.HeaderTemplate>
+            <DataTemplate><TextBlock Text="ÉDITEUR" Style="{StaticResource HeaderText}" HorizontalAlignment="Right"/></DataTemplate>
+          </DataGridTemplateColumn.HeaderTemplate>
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Publisher}" Style="{StaticResource ProcessCell}"
+                         HorizontalAlignment="Right" TextTrimming="CharacterEllipsis"/>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
       </DataGrid.Columns>
     </DataGrid>
-
   </DockPanel>
 </Page>

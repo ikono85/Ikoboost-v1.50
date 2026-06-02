@@ -4,213 +4,130 @@
       Background="{DynamicResource BackgroundBrush}"
       Title="{DynamicResource Nav.Applications}">
 
+  <!-- Applications redesigné — bindings/commandes/convertisseurs inchangés
+       (Apps, SelectedApp, SearchText, VisibleAppCount, TotalAppCount,
+        WingetStatusText, StatusLog, LoadAppsCommand, UpgradeAllCommand,
+        UninstallCommand, UpgradeAppCommand, UninstallAppCommand,
+        Name, DisplayPublisher, DisplayVersion, SourceLabel, Id, IconPath). -->
+
   <Page.Resources>
-    <Style x:Key="AppCardButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-      <Setter Property="MinWidth" Value="86"/>
+    <Style x:Key="ModernCard" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+      <Setter Property="CornerRadius" Value="{DynamicResource CardRadius}"/>
+      <Setter Property="Padding" Value="18"/>
+    </Style>
+    <Style x:Key="AppCardButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+      <Setter Property="MinWidth" Value="92"/>
       <Setter Property="Height" Value="30"/>
       <Setter Property="Padding" Value="10,4"/>
     </Style>
   </Page.Resources>
 
-  <DockPanel Margin="24">
+  <DockPanel Margin="24,22,24,24">
 
-    <Grid DockPanel.Dock="Top" Margin="0,0,0,16">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*"/>
-        <ColumnDefinition Width="Auto"/>
-      </Grid.ColumnDefinitions>
-
+    <Grid DockPanel.Dock="Top" Margin="0,0,0,14">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <StackPanel>
-        <TextBlock Text="{DynamicResource Applications.Title}"
-                   FontSize="22"
-                   FontWeight="SemiBold"
+        <TextBlock Text="{DynamicResource Applications.Title}" FontSize="22" FontWeight="Bold"
                    Foreground="{DynamicResource TextPrimaryBrush}"/>
         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-          <TextBlock Foreground="{DynamicResource TextSecondaryBrush}">
-            <Run Text="{Binding VisibleAppCount, Mode=OneWay}"/><Run Text=" / "/><Run Text="{Binding TotalAppCount, Mode=OneWay}"/><Run Text=" applications"/>
-          </TextBlock>
-          <Border Background="{DynamicResource SurfaceAltBrush}"
-                  BorderBrush="{DynamicResource BorderBrush}"
-                  BorderThickness="1"
-                  CornerRadius="6"
-                  Padding="8,2"
-                  Margin="12,0,0,0">
-            <TextBlock Text="{Binding WingetStatusText, Mode=OneWay}"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       FontSize="12"/>
+          <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="999" Padding="9,3">
+            <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12">
+              <Run Text="{Binding VisibleAppCount, Mode=OneWay}"/><Run Text=" / "/><Run Text="{Binding TotalAppCount, Mode=OneWay}"/><Run Text=" applications"/>
+            </TextBlock>
+          </Border>
+          <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="999" Padding="9,3" Margin="8,0,0,0">
+            <TextBlock Text="{Binding WingetStatusText, Mode=OneWay}" Foreground="{DynamicResource AccentBrush}" FontSize="12"/>
           </Border>
         </StackPanel>
       </StackPanel>
-
       <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
-        <Button Content="{DynamicResource Applications.RefreshList}"
-                Style="{StaticResource PrimaryButtonStyle}"
-                Command="{Binding LoadAppsCommand}"/>
-        <Button Content="{DynamicResource Applications.UpgradeAll}"
-                Style="{StaticResource PrimaryButtonStyle}"
-                Command="{Binding UpgradeAllCommand}"
-                Margin="8,0,0,0"/>
+        <Button Content="{DynamicResource Applications.RefreshList}" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding LoadAppsCommand}"/>
+        <Button Content="{DynamicResource Applications.UpgradeAll}" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding UpgradeAllCommand}" Margin="8,0,0,0"/>
       </StackPanel>
     </Grid>
 
-    <Border DockPanel.Dock="Top"
-            Style="{StaticResource CardStyle}"
-            Margin="0,0,0,14">
+    <Border DockPanel.Dock="Top" Style="{StaticResource ModernCard}" Margin="0,0,0,14">
       <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*"/>
-          <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
-
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel>
-          <TextBlock Text="Rechercher une application"
-                     Style="{StaticResource SectionLabelStyle}"/>
-          <TextBox Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                   Height="34"
-                   FontSize="14"
-                   Padding="10,6"/>
+          <TextBlock Text="Rechercher une application" Style="{StaticResource SectionLabelStyle}"/>
+          <TextBox Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="34" FontSize="14" Padding="10,6"/>
         </StackPanel>
-
-        <StackPanel Grid.Column="1"
-                    Margin="16,0,0,0"
-                    VerticalAlignment="Bottom">
-          <TextBlock Text="Action rapide"
-                     Style="{StaticResource SectionLabelStyle}"/>
-          <Button Content="{DynamicResource Applications.UninstallSelected}"
-                  Style="{StaticResource DangerButtonStyle}"
-                  Command="{Binding UninstallCommand}"/>
+        <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Bottom">
+          <TextBlock Text="Action rapide" Style="{StaticResource SectionLabelStyle}"/>
+          <Button Content="{DynamicResource Applications.UninstallSelected}" Style="{StaticResource DangerButtonStyle}" Command="{Binding UninstallCommand}"/>
         </StackPanel>
       </Grid>
     </Border>
 
-    <Border DockPanel.Dock="Bottom"
-            Style="{StaticResource CardStyle}"
-            Margin="0,12,0,0"
-            MaxHeight="110">
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource ModernCard}" Margin="0,12,0,0" MaxHeight="110" Padding="14">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <TextBlock Text="{Binding StatusLog}"
-                   Foreground="{DynamicResource TextSecondaryBrush}"
-                   FontFamily="Consolas"
-                   FontSize="11"
-                   TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding StatusLog}" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="Consolas" FontSize="11.5" TextWrapping="Wrap"/>
       </ScrollViewer>
     </Border>
 
-    <ListBox ItemsSource="{Binding Apps}"
-             SelectedItem="{Binding SelectedApp}"
-             BorderThickness="0"
-             Background="Transparent"
-             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+    <ListBox ItemsSource="{Binding Apps}" SelectedItem="{Binding SelectedApp}" BorderThickness="0"
+             Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
       <ListBox.ItemsPanel>
-        <ItemsPanelTemplate>
-          <WrapPanel/>
-        </ItemsPanelTemplate>
+        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
       </ListBox.ItemsPanel>
-
       <ListBox.ItemContainerStyle>
         <Style TargetType="ListBoxItem">
           <Setter Property="Margin" Value="0,0,12,12"/>
           <Setter Property="Padding" Value="0"/>
           <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+          <Setter Property="Template">
+            <Setter.Value>
+              <ControlTemplate TargetType="ListBoxItem">
+                <ContentPresenter/>
+              </ControlTemplate>
+            </Setter.Value>
+          </Setter>
         </Style>
       </ListBox.ItemContainerStyle>
-
       <ListBox.ItemTemplate>
         <DataTemplate>
-          <Border Style="{StaticResource CardStyle}"
-                  Width="360"
-                  MinHeight="170">
+          <Border Style="{StaticResource ModernCard}" Width="372" MinHeight="172">
             <Grid>
-              <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-              </Grid.RowDefinitions>
-
+              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
               <Grid>
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="Auto"/>
-                  <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <Border Width="52"
-                        Height="52"
-                        CornerRadius="8"
-                        Background="{DynamicResource SurfaceAltBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1"
-                        Margin="0,0,12,0">
-                  <Image Source="{Binding IconPath, Converter={StaticResource AppIconConverter}}"
-                         Width="42"
-                         Height="42"
-                         Stretch="UniformToFill"
-                         ClipToBounds="True"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"/>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Width="52" Height="52" CornerRadius="11" Background="{DynamicResource SurfaceAltBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="0,0,12,0">
+                  <Grid>
+                    <TextBlock Text="&#xECAA;" FontFamily="Segoe MDL2 Assets"
+                               Foreground="{DynamicResource AccentBrush}" FontSize="22"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Image Source="{Binding IconPath, Converter={StaticResource AppIconConverter}}" Width="42" Height="42"
+                           Stretch="Uniform" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                  </Grid>
                 </Border>
-
-                <StackPanel Grid.Column="1">
-                  <TextBlock Text="{Binding Name}"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             FontWeight="SemiBold"
-                             FontSize="15"
-                             TextTrimming="CharacterEllipsis"/>
-                  <TextBlock Text="{Binding DisplayPublisher, Mode=OneWay}"
-                             Foreground="{DynamicResource TextSecondaryBrush}"
-                             FontSize="12"
-                             TextTrimming="CharacterEllipsis"
-                             Margin="0,2,0,0"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="15" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding DisplayPublisher, Mode=OneWay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
                 </StackPanel>
               </Grid>
-
               <Grid Grid.Row="1" Margin="0,14,0,12">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="*"/>
-                  <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                 <StackPanel>
-                  <TextBlock Text="{DynamicResource Applications.InstalledVersion}"
-                             Style="{StaticResource SectionLabelStyle}"/>
-                  <TextBlock Text="{Binding DisplayVersion, Mode=OneWay}"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{DynamicResource Applications.InstalledVersion}" Style="{StaticResource SectionLabelStyle}"/>
+                  <TextBlock Text="{Binding DisplayVersion, Mode=OneWay}" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Consolas" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                  <TextBlock Text="{DynamicResource Common.Source}"
-                             Style="{StaticResource SectionLabelStyle}"/>
-                  <TextBlock Text="{Binding SourceLabel, Mode=OneWay}"
-                             Foreground="{DynamicResource TextPrimaryBrush}"/>
+                  <TextBlock Text="{DynamicResource Common.Source}" Style="{StaticResource SectionLabelStyle}"/>
+                  <TextBlock Text="{Binding SourceLabel, Mode=OneWay}" Foreground="{DynamicResource TextPrimaryBrush}"/>
                 </StackPanel>
               </Grid>
-
               <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="*"/>
-                  <ColumnDefinition Width="Auto"/>
-                  <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Text="{Binding Id}"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="11"
-                           VerticalAlignment="Center"
-                           TextTrimming="CharacterEllipsis"
-                           Margin="0,0,10,0"/>
-
-                <Button Grid.Column="1"
-                        Content="Mettre a jour"
-                        Style="{StaticResource AppCardButtonStyle}"
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Id}" Foreground="{DynamicResource TextTertiaryBrush}" FontFamily="Consolas" FontSize="11"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0"/>
+                <Button Grid.Column="1" Content="Mettre à jour" Style="{StaticResource AppCardButtonStyle}"
                         Command="{Binding DataContext.UpgradeAppCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                        CommandParameter="{Binding}"
-                        Margin="0,0,8,0"/>
-                <Button Grid.Column="2"
-                        Content="Desinstaller"
-                        Style="{StaticResource DangerButtonStyle}"
+                        CommandParameter="{Binding}" Margin="0,0,8,0"/>
+                <Button Grid.Column="2" Content="Désinstaller" Style="{StaticResource DangerButtonStyle}"
                         Command="{Binding DataContext.UninstallAppCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                        CommandParameter="{Binding}"
-                        MinWidth="94"
-                        Height="30"
-                        Padding="10,4"/>
+                        CommandParameter="{Binding}" MinWidth="96" Height="30" Padding="10,4"/>
               </Grid>
             </Grid>
           </Border>

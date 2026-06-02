@@ -1,0 +1,149 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+  <!-- Navigation -->
+  <sys:String x:Key="Nav.Dashboard">Tableau de bord</sys:String>
+  <sys:String x:Key="Nav.Hardware">Matériel</sys:String>
+  <sys:String x:Key="Nav.Network">Réseau</sys:String>
+  <sys:String x:Key="Nav.Processes">Processus</sys:String>
+  <sys:String x:Key="Nav.Applications">Applications</sys:String>
+  <sys:String x:Key="Nav.Startup">Démarrage</sys:String>
+  <sys:String x:Key="Nav.Optimize">Optimisation</sys:String>
+  <sys:String x:Key="Nav.Settings">Paramètres</sys:String>
+
+  <!-- Common -->
+  <sys:String x:Key="Common.Refresh">Actualiser</sys:String>
+  <sys:String x:Key="Common.Apply">Appliquer</sys:String>
+  <sys:String x:Key="Common.Save">Enregistrer</sys:String>
+  <sys:String x:Key="Common.Reset">Réinitialiser</sys:String>
+  <sys:String x:Key="Common.Cancel">Annuler</sys:String>
+  <sys:String x:Key="Common.Name">Nom</sys:String>
+  <sys:String x:Key="Common.Source">Source</sys:String>
+  <sys:String x:Key="Common.Value">Valeur</sys:String>
+  <sys:String x:Key="Common.Description">Description</sys:String>
+  <sys:String x:Key="Common.Error">Erreur</sys:String>
+  <sys:String x:Key="Common.Status">Statut</sys:String>
+  <sys:String x:Key="Common.Action">Action</sys:String>
+  <sys:String x:Key="Common.SearchProcesses">Rechercher un processus...</sys:String>
+
+  <!-- Dashboard -->
+  <sys:String x:Key="Dashboard.Title">Tableau de bord</sys:String>
+  <sys:String x:Key="Dashboard.Loading">Chargement des données système...</sys:String>
+  <sys:String x:Key="Dashboard.Uptime">Uptime : </sys:String>
+  <sys:String x:Key="Dashboard.CpuLabel">CPU : </sys:String>
+  <sys:String x:Key="Dashboard.GpuLabel">GPU : </sys:String>
+  <sys:String x:Key="Dashboard.RamLabel">RAM : </sys:String>
+  <sys:String x:Key="Dashboard.Motherboard">Carte mère : </sys:String>
+  <sys:String x:Key="Dashboard.Frequency">Fréquence : </sys:String>
+  <sys:String x:Key="Dashboard.MaxClock">Max : </sys:String>
+  <sys:String x:Key="Dashboard.TempCpu">Temp CPU : </sys:String>
+  <sys:String x:Key="Dashboard.Available">Libre : </sys:String>
+  <sys:String x:Key="Dashboard.Used">Utilisé : </sys:String>
+  <sys:String x:Key="Dashboard.Total">Total : </sys:String>
+  <sys:String x:Key="Dashboard.Network">Réseau</sys:String>
+  <sys:String x:Key="Dashboard.PingLabel">Ping : </sys:String>
+  <sys:String x:Key="Dashboard.IpLabel">IP : </sys:String>
+  <sys:String x:Key="Dashboard.Link">Lien : </sys:String>
+  <sys:String x:Key="Dashboard.DnsLabel">DNS : </sys:String>
+  <sys:String x:Key="Dashboard.VramLabel">VRAM : </sys:String>
+  <sys:String x:Key="Dashboard.Driver">Pilote : </sys:String>
+  <sys:String x:Key="Dashboard.Temperature">Temp GPU : </sys:String>
+  <sys:String x:Key="Dashboard.Storage">Stockage</sys:String>
+
+  <!-- Hardware -->
+  <sys:String x:Key="Hardware.Title">Informations matérielles</sys:String>
+  <sys:String x:Key="Hardware.Category">Catégorie</sys:String>
+  <sys:String x:Key="Hardware.Sensor">Capteur</sys:String>
+  <sys:String x:Key="Hardware.Reference">Référence</sys:String>
+  <sys:String x:Key="Hardware.Level">Niveau</sys:String>
+  <sys:String x:Key="Hardware.Info">Info</sys:String>
+
+  <!-- Network -->
+  <sys:String x:Key="Network.Title">Réseau</sys:String>
+  <sys:String x:Key="Network.Adapter">Adaptateur réseau</sys:String>
+  <sys:String x:Key="Network.GatewayLabel">Passerelle : </sys:String>
+  <sys:String x:Key="Network.DnsLabel">DNS : </sys:String>
+  <sys:String x:Key="Network.PingServerLabel">Ping serveur : </sys:String>
+  <sys:String x:Key="Network.ChangeDns">Changer le DNS</sys:String>
+  <sys:String x:Key="Network.FlushDns">Vider le cache DNS</sys:String>
+  <sys:String x:Key="Network.RunTest">Lancer le test</sys:String>
+  <sys:String x:Key="Network.History">Historique des tests</sys:String>
+  <sys:String x:Key="Network.Time">Heure</sys:String>
+  <sys:String x:Key="Network.TestAllServers">Tester tous les serveurs</sys:String>
+  <sys:String x:Key="Network.Repair">Réparer le réseau</sys:String>
+  <sys:String x:Key="Network.AveragePing">Ping moyen</sys:String>
+  <sys:String x:Key="Network.Minimum">Minimum</sys:String>
+  <sys:String x:Key="Network.Maximum">Maximum</sys:String>
+  <sys:String x:Key="Network.Server">Serveur</sys:String>
+  <sys:String x:Key="Network.Latency">Latence</sys:String>
+  <sys:String x:Key="Network.RepairLog">Journal de réparation</sys:String>
+
+  <!-- Processes -->
+  <sys:String x:Key="Processes.Title">Processus</sys:String>
+  <sys:String x:Key="Processes.CpuColumn">CPU %</sys:String>
+  <sys:String x:Key="Processes.RamColumn">RAM (Mo)</sys:String>
+  <sys:String x:Key="Processes.Priority">Priorité</sys:String>
+  <sys:String x:Key="Processes.Publisher">Éditeur</sys:String>
+
+  <!-- Applications -->
+  <sys:String x:Key="Applications.Title">Applications</sys:String>
+  <sys:String x:Key="Applications.RefreshList">Actualiser la liste</sys:String>
+  <sys:String x:Key="Applications.UpgradeAll">Tout mettre à jour</sys:String>
+  <sys:String x:Key="Applications.UninstallSelected">Désinstaller la sélection</sys:String>
+  <sys:String x:Key="Applications.InstalledVersion">Version installée</sys:String>
+
+  <!-- Startup -->
+  <sys:String x:Key="Startup.Title">Démarrage</sys:String>
+  <sys:String x:Key="Startup.Enabled">Activés</sys:String>
+  <sys:String x:Key="Startup.Disabled">Désactivés</sys:String>
+  <sys:String x:Key="Startup.ToggleSelected">Basculer la sélection</sys:String>
+  <sys:String x:Key="Startup.Start">Démarrage</sys:String>
+  <sys:String x:Key="Startup.Command">Commande</sys:String>
+
+  <!-- Optimize -->
+  <sys:String x:Key="Optimize.Title">Centre d'optimisation</sys:String>
+  <sys:String x:Key="Optimize.OneClick">Maintenance 1-clic</sys:String>
+  <sys:String x:Key="Optimize.OneClickDescription">Nettoie les fichiers temporaires, optimise la RAM et répare le système en une seule opération.</sys:String>
+  <sys:String x:Key="Optimize.RunFullMaintenance">⚡ Lancer la maintenance complète</sys:String>
+  <sys:String x:Key="Optimize.SystemCleanup">Nettoyage système</sys:String>
+  <sys:String x:Key="Optimize.CleanTemp">Nettoyer les fichiers temp</sys:String>
+  <sys:String x:Key="Optimize.RamCleaner">Nettoyeur de RAM</sys:String>
+  <sys:String x:Key="Optimize.RamDescription">Libère la mémoire vive non utilisée par les processus.</sys:String>
+  <sys:String x:Key="Optimize.CleanRam">Nettoyer la RAM</sys:String>
+  <sys:String x:Key="Optimize.Before">Avant</sys:String>
+  <sys:String x:Key="Optimize.After">Après</sys:String>
+  <sys:String x:Key="Optimize.Freed">Libéré</sys:String>
+  <sys:String x:Key="Optimize.RestorePoint">Point de restauration</sys:String>
+  <sys:String x:Key="Optimize.RestoreDescription">Crée un point de restauration Windows avant d'appliquer des modifications importantes.</sys:String>
+  <sys:String x:Key="Optimize.CreateRestorePoint">Créer un point de restauration</sys:String>
+  <sys:String x:Key="Optimize.PowerPlan">Profil d'alimentation</sys:String>
+  <sys:String x:Key="Optimize.Registry">Registre Windows</sys:String>
+  <sys:String x:Key="Optimize.RegistryDescription">Applique des optimisations sélectionnées du registre. Créez un point de restauration avant de continuer.</sys:String>
+  <sys:String x:Key="Optimize.RecommendedSelection">Sélection recommandée</sys:String>
+  <sys:String x:Key="Optimize.ClearAll">Tout désélectionner</sys:String>
+  <sys:String x:Key="Optimize.ApplySelection">Appliquer la sélection</sys:String>
+  <sys:String x:Key="Optimize.Package">Package</sys:String>
+  <sys:String x:Key="Optimize.Bloatware">Bloatwares Windows</sys:String>
+  <sys:String x:Key="Optimize.BloatwareDescription">Désinstallez les applications préinstallées inutiles. Vérifiez votre sélection avant de continuer.</sys:String>
+  <sys:String x:Key="Optimize.UninstallSelection">Désinstaller la sélection</sys:String>
+  <sys:String x:Key="Optimize.Log">Journal des opérations</sys:String>
+
+  <!-- Settings -->
+  <sys:String x:Key="Settings.Title">Paramètres</sys:String>
+  <sys:String x:Key="Settings.Appearance">Apparence</sys:String>
+  <sys:String x:Key="Settings.Theme">Thème</sys:String>
+  <sys:String x:Key="Settings.Language">Langue</sys:String>
+  <sys:String x:Key="Settings.Monitoring">Surveillance</sys:String>
+  <sys:String x:Key="Settings.RefreshInterval">Intervalle d'actualisation (s)</sys:String>
+  <sys:String x:Key="Settings.TempAlert">Seuil d'alerte température (°C)</sys:String>
+  <sys:String x:Key="Settings.Alerts">Alertes</sys:String>
+  <sys:String x:Key="Settings.NetworkAlerts">Alertes réseau</sys:String>
+  <sys:String x:Key="Settings.StorageAlerts">Alertes stockage</sys:String>
+  <sys:String x:Key="Settings.MinimizeToTray">Minimiser dans la barre des tâches</sys:String>
+
+  <!-- Loading -->
+  <sys:String x:Key="Loading.Analysis">Analyse du système en cours...</sys:String>
+  <sys:String x:Key="Loading.Loading">Chargement</sys:String>
+
+</ResourceDictionary>

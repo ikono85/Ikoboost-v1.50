@@ -1,16 +1,13 @@
-using IkoboostWpf.Services;
-using IkoboostWpf.ViewModels;
 using System.Windows.Controls;
+using IkoboostWpf.ViewModels;
 
 namespace IkoboostWpf.Views;
 
 public partial class SettingsPage : Page
 {
-    public SettingsPage(SettingsService settings)
+    public SettingsPage(SettingsViewModel vm)
     {
-        var vm = new SettingsViewModel(settings);
         InitializeComponent();
         DataContext = vm;
-        Unloaded += (_, _) => vm.Dispose();
     }
 }

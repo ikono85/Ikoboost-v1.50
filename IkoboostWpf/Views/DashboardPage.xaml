@@ -5,37 +5,70 @@
       Background="{DynamicResource BackgroundBrush}"
       Title="{DynamicResource Dashboard.Title}">
 
+  <!-- ════════════════════════════════════════════════════════════════
+       Dashboard redesigné — Direction A « Control Center » (Ikoboost OS)
+       • Bindings 100 % identiques à ton ViewModel (rien à changer côté C#).
+       • Nécessite 2 contrôles fournis : GaugeRingControl + ThermalBarControl
+         (dans IkoboostWpf/Controls/). Réutilise SparklineControl & HealthRingControl.
+       ════════════════════════════════════════════════════════════════ -->
+
+  <Page.Resources>
+    <Style x:Key="ModernCard" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+      <Setter Property="CornerRadius" Value="{DynamicResource CardRadius}"/>
+      <Setter Property="Padding" Value="18"/>
+    </Style>
+    <Style x:Key="MetricName" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style x:Key="BigNumber" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Consolas"/>
+      <Setter Property="FontSize" Value="26"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style x:Key="CardHead" TargetType="TextBlock" BasedOn="{StaticResource SectionLabelStyle}">
+      <Setter Property="FontSize" Value="11.5"/>
+      <Setter Property="Margin" Value="0,0,0,12"/>
+    </Style>
+    <Style x:Key="MonoLabel" TargetType="TextBlock" BasedOn="{StaticResource MetricLabelStyle}">
+      <Setter Property="FontFamily" Value="Consolas"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/>
+    </Style>
+  </Page.Resources>
+
   <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="24">
+    <StackPanel Margin="24,22,24,28">
 
-      <!-- Header -->
-<TextBlock Text="{DynamicResource Dashboard.Title}" FontSize="22" FontWeight="SemiBold"
-                 Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-      <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,20">
-        <Run Text="{Binding MachineName}"/> — <Run Text="{Binding UserName}"/> — <Run Text="{Binding OsVersion}"/>
-      </TextBlock>
+      <!-- ── En-tête ─────────────────────────────────────────────── -->
+      <Grid Margin="0,0,0,20">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel>
+          <TextBlock Text="{DynamicResource Dashboard.Title}" FontSize="22" FontWeight="Bold"
+                     Foreground="{DynamicResource TextPrimaryBrush}"/>
+          <TextBlock FontSize="11.5" FontFamily="Consolas"
+                     Foreground="{DynamicResource TextTertiaryBrush}" Margin="0,3,0,0">
+            <Run Text="{Binding MachineName}"/><Run Text=" · "/><Run Text="{Binding UserName}"/><Run Text=" · "/><Run Text="{Binding OsVersion}"/>
+          </TextBlock>
+        </StackPanel>
+        <Border Grid.Column="1" Style="{StaticResource ModernCard}" Padding="14,10" VerticalAlignment="Center">
+          <WrapPanel VerticalAlignment="Center">
+            <TextBlock Text="{DynamicResource Dashboard.Uptime}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+            <TextBlock Text="{Binding Uptime}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" FontFamily="Consolas" FontSize="12" Margin="4,0,0,0"/>
+          </WrapPanel>
+        </Border>
+      </Grid>
 
-      <!-- Loading -->
-      <TextBlock Text="{DynamicResource Dashboard.Loading}" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisConverter}}"
-                 Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"/>
+      <TextBlock Text="{DynamicResource Dashboard.Loading}"
+                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisConverter}}"
+                 Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,14"/>
 
-      <!-- Uptime banner -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16">
-        <WrapPanel>
-          <TextBlock Text="{DynamicResource Dashboard.Uptime}" Foreground="{DynamicResource TextSecondaryBrush}"/>
-          <TextBlock Text="{Binding Uptime}" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
-          <TextBlock Text="{DynamicResource Dashboard.CpuLabel}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="24,0,0,0"/>
-          <TextBlock Text="{Binding CpuName}" Foreground="{DynamicResource TextPrimaryBrush}"/>
-          <TextBlock Text="{DynamicResource Dashboard.GpuLabel}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="24,0,0,0"/>
-          <TextBlock Text="{Binding GpuName}" Foreground="{DynamicResource TextPrimaryBrush}"/>
-          <TextBlock Text="{DynamicResource Dashboard.RamLabel}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="24,0,0,0"/>
-          <TextBlock Text="{Binding RamReference}" Foreground="{DynamicResource TextPrimaryBrush}"/>
-          <TextBlock Text="{DynamicResource Dashboard.Motherboard}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="24,0,0,0"/>
-          <TextBlock Text="{Binding MotherboardReference}" Foreground="{DynamicResource TextPrimaryBrush}"/>
-        </WrapPanel>
-      </Border>
-
-      <!-- Metric grid -->
+      <!-- ── Grille de métriques (anneau + icône, comme la maquette) ── -->
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*"/>
@@ -45,314 +78,241 @@
         </Grid.ColumnDefinitions>
 
         <!-- CPU -->
-        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,8">
+        <Border Grid.Column="0" Style="{StaticResource ModernCard}" Margin="0,0,7,14">
           <StackPanel>
-            <TextBlock Text="CPU" Style="{StaticResource SectionLabelStyle}"/>
-            <TextBlock Style="{StaticResource MetricValueStyle}">
-              <Run Text="{Binding CpuPercent, StringFormat='{}{0:F1}'}"/><Run Text=" %"/>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Grid Width="52" Height="52" VerticalAlignment="Center">
+                <controls:GaugeRingControl Percent="{Binding CpuPercent}" Maximum="100" Thickness="6" RingBrush="{DynamicResource AccentBrush}"/>
+                <Viewbox Width="20" Height="20">
+                  <Path Data="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3M5 5h14v14H5zM9 9h6v6H9z"
+                        Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.7" StrokeLineJoin="Round"/>
+                </Viewbox>
+              </Grid>
+              <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="CPU" Style="{StaticResource MetricName}"/>
+                  <Border Grid.Column="1"
+                          Background="{DynamicResource SurfaceAltBrush}"
+                          BorderBrush="{DynamicResource BorderBrush}"
+                          BorderThickness="1"
+                          CornerRadius="{DynamicResource ControlRadius}"
+                          Padding="8,3"
+                          Margin="8,0,0,0"
+                          ToolTip="{Binding CpuTempDiagnostic}">
+                    <TextBlock Text="{Binding CpuTempText}"
+                               Foreground="{Binding CpuTempBrush}"
+                               FontFamily="Consolas"
+                               FontSize="11"
+                               FontWeight="Bold"/>
+                  </Border>
+                </Grid>
+                <TextBlock Style="{StaticResource BigNumber}">
+                  <Run Text="{Binding CpuPercent, StringFormat='{}{0:F0}'}"/><Run Text=" %" FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </TextBlock>
+              </StackPanel>
+            </Grid>
+            <controls:SparklineControl Values="{Binding CpuHistory}" LineBrush="{DynamicResource AccentBrush}"
+                                       MaxValue="100" Height="40" Margin="0,12,0,0" ClipToBounds="True"/>
+            <TextBlock Style="{StaticResource MonoLabel}" Margin="0,10,0,0">
+              <Run Text="{Binding CpuCurrentClockMhz}"/><Run Text=" MHz · "/><Run Text="{Binding CpuTemperature}"/>
             </TextBlock>
-            <ProgressBar Value="{Binding CpuPercent}" Maximum="100" Foreground="{DynamicResource AccentBrush}" Margin="0,8,0,0"/>
-            <controls:SparklineControl Values="{Binding CpuHistory}"
-                                       LineBrush="{DynamicResource AccentBrush}"
-                                       MaxValue="100"
-                                       Height="48"
-                                       Margin="0,6,0,0"
-                                       ClipToBounds="True"/>
-            <TextBlock Text="{Binding CpuDetails}" Style="{StaticResource MetricLabelStyle}" Margin="0,6,0,0" TextWrapping="Wrap"/>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0">
-              <Run Text="{DynamicResource Dashboard.Frequency}"/><Run Text="{Binding CpuCurrentClockMhz}"/><Run Text=" MHz"/>
-            </TextBlock>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0">
-              <Run Text="{DynamicResource Dashboard.MaxClock}"/><Run Text="{Binding CpuMaxClockMhz}"/><Run Text=" MHz"/>
-            </TextBlock>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0" TextWrapping="Wrap">
-              <Run Text="{DynamicResource Dashboard.TempCpu}"/><Run Text="{Binding CpuTemperature}"/>
-            </TextBlock>
-            <TextBlock Text="{Binding CpuName}" Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0" TextWrapping="Wrap"/>
           </StackPanel>
         </Border>
 
         <!-- RAM -->
-        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="4,0,4,8">
+        <Border Grid.Column="1" Style="{StaticResource ModernCard}" Margin="3.5,0,3.5,14">
           <StackPanel>
-            <TextBlock Text="RAM" Style="{StaticResource SectionLabelStyle}"/>
-            <TextBlock Style="{StaticResource MetricValueStyle}">
-              <Run Text="{Binding RamPercent, StringFormat='{}{0:F1}'}"/><Run Text="%"/>
-            </TextBlock>
-            <ProgressBar Value="{Binding RamPercent}" Maximum="100" Foreground="{DynamicResource SuccessBrush}" Margin="0,8,0,0"/>
-            <controls:SparklineControl Values="{Binding RamHistory}"
-                                       LineBrush="{Binding RamSparklineBrush}"
-                                       MaxValue="100"
-                                       Height="48"
-                                       Margin="0,6,0,0"
-                                       ClipToBounds="True"/>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0">
-              <Run Text="{DynamicResource Dashboard.Available}"/><Run Text="{Binding RamAvailableMb, StringFormat='{}{0:N0}'}"/><Run Text=" Mo"/>
-            </TextBlock>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0">
-              <Run Text="{DynamicResource Dashboard.Used}"/><Run Text="{Binding RamUsedMb, StringFormat='{}{0:N0}'}"/><Run Text=" Mo"/>
-            </TextBlock>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0">
-              <Run Text="{DynamicResource Dashboard.Total}"/><Run Text="{Binding RamTotalMb, StringFormat='{}{0:N0}'}"/><Run Text=" Mo"/>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Grid Width="52" Height="52" VerticalAlignment="Center">
+                <controls:GaugeRingControl Percent="{Binding RamPercent}" Maximum="100" Thickness="6" RingBrush="{DynamicResource VioletBrush}"/>
+                <Viewbox Width="20" Height="20">
+                  <Path Data="M3 7h18v7H3zM6 14v3M10 14v3M14 14v3M18 14v3M6 10h2M11 10h2M16 10h2"
+                        Stroke="{DynamicResource VioletBrush}" StrokeThickness="1.7" StrokeLineJoin="Round"/>
+                </Viewbox>
+              </Grid>
+              <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="MÉMOIRE" Style="{StaticResource MetricName}"/>
+                <TextBlock Style="{StaticResource BigNumber}">
+                  <Run Text="{Binding RamPercent, StringFormat='{}{0:F0}'}"/><Run Text=" %" FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </TextBlock>
+              </StackPanel>
+            </Grid>
+            <controls:SparklineControl Values="{Binding RamHistory}" LineBrush="{DynamicResource VioletBrush}"
+                                       MaxValue="100" Height="40" Margin="0,12,0,0" ClipToBounds="True"/>
+            <TextBlock Style="{StaticResource MonoLabel}" Margin="0,10,0,0">
+              <Run Text="{Binding RamUsedMb, StringFormat='{}{0:N0}'}"/><Run Text=" / "/><Run Text="{Binding RamTotalMb, StringFormat='{}{0:N0}'}"/><Run Text=" Mo"/>
             </TextBlock>
           </StackPanel>
         </Border>
 
         <!-- GPU -->
-        <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="4,0,4,8">
+        <Border Grid.Column="2" Style="{StaticResource ModernCard}" Margin="3.5,0,3.5,14">
           <StackPanel>
-            <TextBlock Text="GPU" Style="{StaticResource SectionLabelStyle}"/>
-            <TextBlock Text="{Binding GpuUsageText}" Style="{StaticResource MetricValueStyle}"/>
-            <ProgressBar Value="{Binding GpuPercent}" Maximum="100" Foreground="{DynamicResource WarningBrush}" Margin="0,8,0,0"/>
-            <controls:SparklineControl Values="{Binding GpuHistory}"
-                                       LineBrush="{DynamicResource WarningBrush}"
-                                       MaxValue="100"
-                                       Height="48"
-                                       Margin="0,6,0,0"
-                                       ClipToBounds="True"/>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,6,0,0" TextWrapping="Wrap">
-              <Run Text="{DynamicResource Dashboard.Temperature}"/><Run Text="{Binding GpuTemperature}"/>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Grid Width="52" Height="52" VerticalAlignment="Center">
+                <controls:GaugeRingControl Percent="{Binding GpuPercent}" Maximum="100" Thickness="6" RingBrush="{DynamicResource BlueBrush}"/>
+                <Viewbox Width="20" Height="20">
+                  <Path Data="M2 6h20v10H2zM6 16v3M16 16v3M13 9a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"
+                        Stroke="{DynamicResource BlueBrush}" StrokeThickness="1.7" StrokeLineJoin="Round"/>
+                </Viewbox>
+              </Grid>
+              <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="GPU" Style="{StaticResource MetricName}"/>
+                <TextBlock Text="{Binding GpuUsageText}" Style="{StaticResource BigNumber}"/>
+              </StackPanel>
+            </Grid>
+            <controls:SparklineControl Values="{Binding GpuHistory}" LineBrush="{DynamicResource BlueBrush}"
+                                       MaxValue="100" Height="40" Margin="0,12,0,0" ClipToBounds="True"/>
+            <TextBlock Style="{StaticResource MonoLabel}" Margin="0,10,0,0" TextWrapping="Wrap">
+              <Run Text="{Binding GpuTemperature}"/><Run Text=" · "/><Run Text="{Binding GpuMemory}"/>
             </TextBlock>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0">
-              <Run Text="{DynamicResource Dashboard.VramLabel}"/><Run Text="{Binding GpuMemory}"/>
-            </TextBlock>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0" TextWrapping="Wrap">
-              <Run Text="{DynamicResource Dashboard.Driver}"/><Run Text="{Binding GpuDriver}"/>
-            </TextBlock>
-            <TextBlock Text="{Binding GpuName}" Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0" TextWrapping="Wrap"/>
           </StackPanel>
         </Border>
 
-        <!-- Network -->
-        <Border Grid.Column="3" Style="{StaticResource CardStyle}" Margin="8,0,0,8">
+        <!-- Réseau -->
+        <Border Grid.Column="3" Style="{StaticResource ModernCard}" Margin="7,0,0,14">
           <StackPanel>
-            <TextBlock Text="{DynamicResource Dashboard.Network}" Style="{StaticResource SectionLabelStyle}"/>
-            <TextBlock Style="{StaticResource MetricValueStyle}">
-              <Run Text="{Binding NetworkInMbps, StringFormat='{}{0:F2}'}"/><Run Text=" ↓"/>
-            </TextBlock>
-            <TextBlock Style="{StaticResource MetricLabelStyle}">
-              <Run Text="{Binding NetworkOutMbps, StringFormat='{}{0:F2}'}"/><Run Text=" Mbps ↑"/>
-            </TextBlock>
-            <controls:SparklineControl Values="{Binding NetworkInHistory}"
-                                       LineBrush="{DynamicResource AccentDimBrush}"
-                                       Height="48"
-                                       Margin="0,6,0,0"
-                                       ClipToBounds="True"/>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,4,0,0">
-              <Run Text="{DynamicResource Dashboard.PingLabel}"/><Run Text="{Binding PingMs}"/><Run Text=" ms"/>
-            </TextBlock>
-            <TextBlock Text="{Binding NetworkAdapterName}" Style="{StaticResource MetricLabelStyle}" Margin="0,6,0,0" TextWrapping="Wrap"/>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0">
-              <Run Text="{DynamicResource Dashboard.IpLabel}"/><Run Text="{Binding NetworkAddress}"/>
-            </TextBlock>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0">
-              <Run Text="{DynamicResource Dashboard.Link}"/><Run Text="{Binding NetworkSpeed}"/>
-            </TextBlock>
-            <TextBlock Style="{StaticResource MetricLabelStyle}" Margin="0,2,0,0" TextWrapping="Wrap">
-              <Run Text="{DynamicResource Dashboard.DnsLabel}"/><Run Text="{Binding NetworkDns}"/>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Grid Width="52" Height="52" VerticalAlignment="Center">
+                <controls:GaugeRingControl Percent="{Binding NetworkInMbps}" Maximum="100" Thickness="6" RingBrush="{DynamicResource SuccessBrush}"/>
+                <Viewbox Width="20" Height="20">
+                  <Path Data="M2 13a10 10 0 0 1 20 0M5.5 16.5a6 6 0 0 1 13 0M9 19.5a2.5 2.5 0 0 1 6 0"
+                        Stroke="{DynamicResource SuccessBrush}" StrokeThickness="1.7" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                </Viewbox>
+              </Grid>
+              <StackPanel Grid.Column="1" Margin="11,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{DynamicResource Dashboard.Network}" Style="{StaticResource MetricName}"/>
+                <TextBlock Style="{StaticResource BigNumber}">
+                  <Run Text="{Binding NetworkInMbps, StringFormat='{}{0:F1}'}"/><Run Text=" ↓" FontSize="14" Foreground="{DynamicResource SuccessBrush}"/>
+                </TextBlock>
+              </StackPanel>
+            </Grid>
+            <controls:SparklineControl Values="{Binding NetworkInHistory}" LineBrush="{DynamicResource SuccessBrush}"
+                                       Height="40" Margin="0,12,0,0" ClipToBounds="True"/>
+            <TextBlock Style="{StaticResource MonoLabel}" Margin="0,10,0,0">
+              <Run Text="↑ "/><Run Text="{Binding NetworkOutMbps, StringFormat='{}{0:F1}'}"/><Run Text=" Mbps · "/><Run Text="{Binding PingMs}"/><Run Text=" ms"/>
             </TextBlock>
           </StackPanel>
         </Border>
       </Grid>
 
-      <!-- ── Score santé + Températures ──────────────────────────────── -->
-      <Grid Margin="0,0,0,16">
+      <!-- ── Score de santé + Températures ────────────────────────── -->
+      <Grid Margin="0,0,0,14">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="3*"/>
           <ColumnDefinition Width="2*"/>
         </Grid.ColumnDefinitions>
 
         <!-- Score santé système -->
-        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+        <Border Grid.Column="0" Style="{StaticResource ModernCard}" Margin="0,0,7,0">
           <StackPanel>
-            <TextBlock Text="🏥 Score santé système" Style="{StaticResource SectionLabelStyle}"/>
-
-            <Grid Margin="0,12,0,0">
+            <TextBlock Text="SCORE DE SANTÉ SYSTÈME" Style="{StaticResource CardHead}"/>
+            <Grid Margin="0,4,0,0">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
               </Grid.ColumnDefinitions>
-
-              <!-- Anneau + label -->
-              <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,20,0">
-                <controls:HealthRingControl Score="{Binding HealthScore}"
-                                            RingBrush="{Binding HealthScoreBrush}"
-                                            Width="96" Height="96"/>
-                <TextBlock Text="/100"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="11" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                <TextBlock Text="{Binding HealthLabel}"
-                           Foreground="{Binding HealthScoreBrush}"
-                           FontSize="11" FontWeight="Bold"
-                           HorizontalAlignment="Center" Margin="0,3,0,0"/>
+              <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0,24,0">
+                <controls:HealthRingControl Score="{Binding HealthScore}" RingBrush="{Binding HealthScoreBrush}" Width="120" Height="120"/>
+                <TextBlock Text="{Binding HealthLabel}" Foreground="{Binding HealthScoreBrush}"
+                           FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,8,0,0"/>
               </StackPanel>
-
-              <!-- Détail par métrique -->
               <StackPanel Grid.Column="1" VerticalAlignment="Center">
-
-                <!-- CPU -->
-                <Grid Margin="0,0,0,9">
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="44"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="32"/>
-                  </Grid.ColumnDefinitions>
-                  <TextBlock Text="CPU" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center"/>
-                  <ProgressBar Grid.Column="1" Value="{Binding HealthCpuScore}" Maximum="100"
-                               Foreground="{DynamicResource AccentBrush}" Height="4" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Column="2" Foreground="{DynamicResource TextSecondaryBrush}"
-                             FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Run Text="{Binding HealthCpuScore}"/><Run Text="%"/>
-                  </TextBlock>
+                <Grid Margin="0,0,0,12">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="84"/><ColumnDefinition Width="*"/><ColumnDefinition Width="36"/></Grid.ColumnDefinitions>
+                  <TextBlock Text="CPU" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12.5" VerticalAlignment="Center"/>
+                  <ProgressBar Grid.Column="1" Value="{Binding HealthCpuScore}" Maximum="100" Foreground="{DynamicResource AccentBrush}" Height="6" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="2" FontFamily="Consolas" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"><Run Text="{Binding HealthCpuScore}"/></TextBlock>
                 </Grid>
-
-                <!-- RAM -->
-                <Grid Margin="0,0,0,9">
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="44"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="32"/>
-                  </Grid.ColumnDefinitions>
-                  <TextBlock Text="RAM" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center"/>
-                  <ProgressBar Grid.Column="1" Value="{Binding HealthRamScore}" Maximum="100"
-                               Foreground="{DynamicResource SuccessBrush}" Height="4" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Column="2" Foreground="{DynamicResource TextSecondaryBrush}"
-                             FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Run Text="{Binding HealthRamScore}"/><Run Text="%"/>
-                  </TextBlock>
+                <Grid Margin="0,0,0,12">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="84"/><ColumnDefinition Width="*"/><ColumnDefinition Width="36"/></Grid.ColumnDefinitions>
+                  <TextBlock Text="Mémoire" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12.5" VerticalAlignment="Center"/>
+                  <ProgressBar Grid.Column="1" Value="{Binding HealthRamScore}" Maximum="100" Foreground="{DynamicResource VioletBrush}" Height="6" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="2" FontFamily="Consolas" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"><Run Text="{Binding HealthRamScore}"/></TextBlock>
                 </Grid>
-
-                <!-- Temp -->
-                <Grid Margin="0,0,0,9">
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="44"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="32"/>
-                  </Grid.ColumnDefinitions>
-                  <TextBlock Text="Temp" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center"/>
-                  <ProgressBar Grid.Column="1" Value="{Binding HealthTempScore}" Maximum="100"
-                               Foreground="{DynamicResource WarningBrush}" Height="4" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Column="2" Foreground="{DynamicResource TextSecondaryBrush}"
-                             FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Run Text="{Binding HealthTempScore}"/><Run Text="%"/>
-                  </TextBlock>
+                <Grid Margin="0,0,0,12">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="84"/><ColumnDefinition Width="*"/><ColumnDefinition Width="36"/></Grid.ColumnDefinitions>
+                  <TextBlock Text="Température" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12.5" VerticalAlignment="Center"/>
+                  <ProgressBar Grid.Column="1" Value="{Binding HealthTempScore}" Maximum="100" Foreground="{DynamicResource WarningBrush}" Height="6" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="2" FontFamily="Consolas" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"><Run Text="{Binding HealthTempScore}"/></TextBlock>
                 </Grid>
-
-                <!-- Disque -->
                 <Grid>
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="44"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="32"/>
-                  </Grid.ColumnDefinitions>
-                  <TextBlock Text="Disk" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center"/>
-                  <ProgressBar Grid.Column="1" Value="{Binding HealthDiskScore}" Maximum="100"
-                               Foreground="{DynamicResource AccentDimBrush}" Height="4" VerticalAlignment="Center"/>
-                  <TextBlock Grid.Column="2" Foreground="{DynamicResource TextSecondaryBrush}"
-                             FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Run Text="{Binding HealthDiskScore}"/><Run Text="%"/>
-                  </TextBlock>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="84"/><ColumnDefinition Width="*"/><ColumnDefinition Width="36"/></Grid.ColumnDefinitions>
+                  <TextBlock Text="Disque" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12.5" VerticalAlignment="Center"/>
+                  <ProgressBar Grid.Column="1" Value="{Binding HealthDiskScore}" Maximum="100" Foreground="{DynamicResource SuccessBrush}" Height="6" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="2" FontFamily="Consolas" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11.5" HorizontalAlignment="Right" VerticalAlignment="Center"><Run Text="{Binding HealthDiskScore}"/></TextBlock>
                 </Grid>
-
               </StackPanel>
             </Grid>
           </StackPanel>
         </Border>
 
-        <!-- Températures -->
-        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
+        <!-- Températures (avec barres thermiques) -->
+        <Border Grid.Column="1" Style="{StaticResource ModernCard}" Margin="7,0,0,0">
           <StackPanel>
-            <TextBlock Text="🌡 Températures" Style="{StaticResource SectionLabelStyle}"/>
+            <TextBlock Text="TEMPÉRATURES" Style="{StaticResource CardHead}"/>
 
-            <!-- CPU -->
-            <Grid Margin="0,14,0,0">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-              </Grid.ColumnDefinitions>
-              <TextBlock Text="CPU" Foreground="{DynamicResource TextSecondaryBrush}"
-                         FontSize="13" VerticalAlignment="Center"/>
-              <TextBlock Grid.Column="1" Text="{Binding CpuTempText}"
-                         Foreground="{Binding CpuTempBrush}"
-                         FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <!-- Processeur -->
+            <Grid Margin="0,2,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <TextBlock Text="Processeur" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12.5"/>
+              <TextBlock Grid.Column="1" Text="{Binding CpuTempText}" Foreground="{Binding CpuTempBrush}" FontFamily="Consolas" FontSize="14" FontWeight="SemiBold"/>
             </Grid>
+            <controls:ThermalBarControl TempText="{Binding CpuTempText}" Height="8" Margin="0,7,0,0"/>
 
-            <!-- GPU (masqué si pas de capteur) -->
-            <Grid Margin="0,12,0,0"
-                  Visibility="{Binding HasGpuTempSensor, Converter={StaticResource BoolToVisConverter}}">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-              </Grid.ColumnDefinitions>
-              <TextBlock Text="GPU" Foreground="{DynamicResource TextSecondaryBrush}"
-                         FontSize="13" VerticalAlignment="Center"/>
-              <TextBlock Grid.Column="1" Text="{Binding GpuTempText}"
-                         Foreground="{Binding GpuTempBrush}"
-                         FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <!-- Carte graphique -->
+            <Grid Margin="0,16,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <TextBlock Text="Carte graphique" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12.5"/>
+              <TextBlock Grid.Column="1" Text="{Binding GpuTempText}" Foreground="{Binding GpuTempBrush}" FontFamily="Consolas" FontSize="14" FontWeight="SemiBold"/>
             </Grid>
+            <controls:ThermalBarControl TempText="{Binding GpuTempText}" Height="8" Margin="0,7,0,0"/>
 
-            <!-- Carte mère (masqué si pas de capteur) -->
-            <Grid Margin="0,12,0,0"
-                  Visibility="{Binding HasMoboTempSensor, Converter={StaticResource BoolToVisConverter}}">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-              </Grid.ColumnDefinitions>
-              <TextBlock Text="Carte mère" Foreground="{DynamicResource TextSecondaryBrush}"
-                         FontSize="13" VerticalAlignment="Center"/>
-              <TextBlock Grid.Column="1" Text="{Binding MoboTempText}"
-                         Foreground="{Binding MoboTempBrush}"
-                         FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <!-- Carte mère (affichée même sans capteur — N/A si non détecté) -->
+            <Grid Margin="0,16,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <TextBlock Text="Carte mère" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12.5"/>
+              <TextBlock Grid.Column="1" Text="{Binding MoboTempText}" Foreground="{Binding MoboTempBrush}" FontFamily="Consolas" FontSize="14" FontWeight="SemiBold"/>
             </Grid>
-
+            <controls:ThermalBarControl TempText="{Binding MoboTempText}" Height="8" Margin="0,7,0,0"/>
           </StackPanel>
         </Border>
-
       </Grid>
 
-      <!-- Drives -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,0">
+      <!-- ── Stockage ─────────────────────────────────────────────── -->
+      <Border Style="{StaticResource ModernCard}">
         <StackPanel>
-          <TextBlock Text="{DynamicResource Dashboard.Storage}" Style="{StaticResource SectionLabelStyle}"/>
-          <TextBlock Text="{Binding DriveInfo}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="13"/>
-          <ItemsControl ItemsSource="{Binding Drives}">
+          <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <TextBlock Text="{DynamicResource Dashboard.Storage}" Style="{StaticResource CardHead}" Margin="0"/>
+            <TextBlock Grid.Column="1" Text="{Binding DriveInfo}" Foreground="{DynamicResource TextSecondaryBrush}" FontFamily="Consolas" FontSize="11.5" VerticalAlignment="Center"/>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Drives}" Margin="0,8,0,0">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Grid Margin="0,8,0,2">
-                  <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                  </Grid.RowDefinitions>
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                  </Grid.ColumnDefinitions>
-
-                  <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
+                <Grid Margin="0,0,0,12">
+                  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <StackPanel Grid.Row="0" Orientation="Horizontal">
                     <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding Label, StringFormat='  {0}'}"
-                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBlock Text="{Binding Label, StringFormat='  {0}'}" Foreground="{DynamicResource TextSecondaryBrush}"/>
                   </StackPanel>
-
-                  <TextBlock Grid.Row="0" Grid.Column="1"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             FontWeight="SemiBold">
-                    <Run Text="{Binding UsagePercent, StringFormat='{}{0:F1}'}"/><Run Text=" %"/>
+                  <TextBlock Grid.Row="0" Grid.Column="1" FontFamily="Consolas" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold">
+                    <Run Text="{Binding UsagePercent, StringFormat='{}{0:F0}'}"/><Run Text=" %"/>
                   </TextBlock>
-
-                  <ProgressBar Grid.Row="1" Grid.ColumnSpan="2"
-                               Value="{Binding UsagePercent}"
-                               Maximum="100"
-                               Foreground="{Binding UsageBrush}"
-                               Margin="0,6,0,0"/>
-
-                  <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
-                             Style="{StaticResource MetricLabelStyle}"
-                             Margin="0,4,0,0">
+                  <ProgressBar Grid.Row="1" Grid.ColumnSpan="2" Value="{Binding UsagePercent}" Maximum="100" Height="6" Foreground="{Binding UsageBrush}" Margin="0,7,0,0"/>
+                  <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource MonoLabel}" Margin="0,5,0,0">
                     <Run Text="{DynamicResource Dashboard.Used}"/><Run Text="{Binding Used}"/>
-                    <Run Text="{DynamicResource Dashboard.Available}"/><Run Text="{Binding Available}"/>
-                    <Run Text="{DynamicResource Dashboard.Total}"/><Run Text="{Binding Total}"/>
+                    <Run Text=" · "/><Run Text="{DynamicResource Dashboard.Available}"/><Run Text="{Binding Available}"/>
+                    <Run Text=" · "/><Run Text="{DynamicResource Dashboard.Total}"/><Run Text="{Binding Total}"/>
                   </TextBlock>
                 </Grid>
               </DataTemplate>

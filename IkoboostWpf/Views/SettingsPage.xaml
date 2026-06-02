@@ -4,63 +4,233 @@
       Background="{DynamicResource BackgroundBrush}"
       Title="{DynamicResource Settings.Title}">
 
+  <Page.Resources>
+    <Style x:Key="SettingsCard" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="18"/>
+      <Setter Property="Margin" Value="0,0,0,14"/>
+    </Style>
+
+    <Style x:Key="SectionTitle" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+      <Setter Property="FontFamily" Value="Consolas"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Margin" Value="0,0,0,18"/>
+    </Style>
+
+    <Style x:Key="SettingLabel" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="SettingRow" TargetType="Grid">
+      <Setter Property="MinHeight" Value="56"/>
+    </Style>
+
+    <Style x:Key="SettingsToggle" TargetType="CheckBox">
+      <Setter Property="Width" Value="40"/>
+      <Setter Property="Height" Value="24"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="CheckBox">
+            <Border x:Name="Track" Width="40" Height="24" CornerRadius="12" Background="#1B2634">
+              <Ellipse x:Name="Knob" Width="18" Height="18" Fill="#8FA0B2"
+                       HorizontalAlignment="Left" Margin="3,0,0,0"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                <Setter TargetName="Knob" Property="Fill" Value="#0A0D13"/>
+                <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+                <Setter TargetName="Knob" Property="Margin" Value="0,0,3,0"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="AccentSwatch" TargetType="Border">
+      <Setter Property="Width" Value="26"/>
+      <Setter Property="Height" Value="26"/>
+      <Setter Property="CornerRadius" Value="7"/>
+      <Setter Property="Margin" Value="5,0,0,0"/>
+    </Style>
+  </Page.Resources>
+
   <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="24" MaxWidth="600" HorizontalAlignment="Left">
-<TextBlock Text="{DynamicResource Settings.Title}" FontSize="22" FontWeight="SemiBold"
-                 Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,20"/>
-
-      <!-- Apparence -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <TextBlock Text="{DynamicResource Settings.Appearance}" Style="{StaticResource SectionLabelStyle}"/>
-          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="{DynamicResource Settings.Theme}" Width="160" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-            <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" Width="180"/>
-          </StackPanel>
-          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="{DynamicResource Settings.Language}" Width="160" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-            <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" Width="180"/>
-          </StackPanel>
-        </StackPanel>
-      </Border>
-
-      <!-- Monitoring -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <TextBlock Text="{DynamicResource Settings.Monitoring}" Style="{StaticResource SectionLabelStyle}"/>
-          <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="{DynamicResource Settings.RefreshInterval}" Width="240" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-            <ComboBox ItemsSource="{Binding RefreshIntervals}" SelectedItem="{Binding RefreshIntervalSeconds}" Width="80"/>
-          </StackPanel>
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="{DynamicResource Settings.TempAlert}" Width="240" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-            <TextBox Width="80" Text="{Binding TempAlertCelsius}"/>
-          </StackPanel>
-        </StackPanel>
-      </Border>
-
-      <!-- Alertes -->
-      <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
-        <StackPanel>
-          <TextBlock Text="{DynamicResource Settings.Alerts}" Style="{StaticResource SectionLabelStyle}"/>
-          <CheckBox Content="{DynamicResource Settings.NetworkAlerts}"
-                    IsChecked="{Binding AlertNetwork, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    Margin="0,4"/>
-          <CheckBox Content="{DynamicResource Settings.StorageAlerts}"
-                    IsChecked="{Binding AlertStorage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    Margin="0,4"/>
-          <CheckBox Content="{DynamicResource Settings.MinimizeToTray}"
-                    IsChecked="{Binding MinimizeToTray, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    Margin="0,4"/>
-        </StackPanel>
-      </Border>
-
-      <!-- Actions -->
-      <StackPanel Orientation="Horizontal">
-        <Button Content="{DynamicResource Common.Save}" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding SaveCommand}"/>
-        <Button Content="{DynamicResource Common.Reset}" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding ResetCommand}" Margin="8,0,0,0"/>
+    <StackPanel Margin="24,18,24,28" MaxWidth="720" HorizontalAlignment="Left">
+      <StackPanel Margin="0,0,0,22">
+        <TextBlock Text="Paramètres"
+                   FontSize="20"
+                   FontWeight="Bold"
+                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+        <TextBlock Text="Apparence - surveillance - alertes"
+                   FontSize="11.5"
+                   FontFamily="Consolas"
+                   Foreground="{DynamicResource TextTertiaryBrush}"
+                   Margin="0,2,0,0"/>
       </StackPanel>
 
+      <Border Style="{StaticResource SettingsCard}">
+        <StackPanel>
+          <TextBlock Text="APPARENCE" Style="{StaticResource SectionTitle}"/>
+
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Thème" Style="{StaticResource SettingLabel}"/>
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding Themes}"
+                      SelectedItem="{Binding Theme}"
+                      Width="180"
+                      Height="34"/>
+          </Grid>
+
+          <Border Height="1" Background="{DynamicResource BorderBrush}"/>
+
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Langue" Style="{StaticResource SettingLabel}"/>
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding Languages}"
+                      SelectedItem="{Binding Language}"
+                      Width="180"
+                      Height="34"/>
+          </Grid>
+
+          <Border Height="1" Background="{DynamicResource BorderBrush}"/>
+
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Couleur d'accent" Style="{StaticResource SettingLabel}"/>
+            <ItemsControl Grid.Column="1" ItemsSource="{Binding AccentColors}" VerticalAlignment="Center">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource AccentSwatch}" Background="{Binding}"/>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource SettingsCard}">
+        <StackPanel>
+          <TextBlock Text="SURVEILLANCE" Style="{StaticResource SectionTitle}"/>
+
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Fréquence de rafraîchissement" Style="{StaticResource SettingLabel}"/>
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding RefreshIntervals}"
+                      SelectedItem="{Binding RefreshIntervalSeconds}"
+                      Width="120"
+                      Height="34"/>
+          </Grid>
+
+          <Border Height="1" Background="{DynamicResource BorderBrush}"/>
+
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Seuil d'alerte température (°C)" Style="{StaticResource SettingLabel}"/>
+            <TextBox Grid.Column="1"
+                     Width="80"
+                     Height="34"
+                     Text="{Binding TempAlertCelsius}"
+                     FontFamily="Consolas"
+                     HorizontalContentAlignment="Center"/>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource SettingsCard}">
+        <StackPanel>
+          <TextBlock Text="ALERTES" Style="{StaticResource SectionTitle}"/>
+
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Alertes réseau (déconnexion, ping élevé)" Style="{StaticResource SettingLabel}"/>
+            <CheckBox Grid.Column="1"
+                      Style="{StaticResource SettingsToggle}"
+                      IsChecked="{Binding AlertNetwork, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+          </Grid>
+
+          <Border Height="1" Background="{DynamicResource BorderBrush}"/>
+
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Alertes stockage (disque presque plein)" Style="{StaticResource SettingLabel}"/>
+            <CheckBox Grid.Column="1"
+                      Style="{StaticResource SettingsToggle}"
+                      IsChecked="{Binding AlertStorage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+          </Grid>
+
+          <Border Height="1" Background="{DynamicResource BorderBrush}"/>
+
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Réduire dans la zone de notification" Style="{StaticResource SettingLabel}"/>
+            <CheckBox Grid.Column="1"
+                      Style="{StaticResource SettingsToggle}"
+                      IsChecked="{Binding MinimizeToTray, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+        <Button Style="{StaticResource PrimaryButtonStyle}"
+                Command="{Binding SaveCommand}"
+                Height="34"
+                Padding="16,0">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <TextBlock Text="Enregistrer"/>
+          </StackPanel>
+        </Button>
+        <Button Style="{StaticResource SecondaryButtonStyle}"
+                Command="{Binding ResetCommand}"
+                Height="34"
+                Padding="16,0"
+                Margin="8,0,0,0">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+            <TextBlock Text="Réinitialiser"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
     </StackPanel>
   </ScrollViewer>
 </Page>

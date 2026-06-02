@@ -1,141 +1,60 @@
+using System.Collections.Generic;
 using System.Windows;
-using System.Windows.Input;
-
-// Aliases: project has UseWindowsForms=true, so several types collide with WPF equivalents.
-using WpfApp = System.Windows.Application;
-using WpfColor = System.Windows.Media.Color;
-using WpfSCBrush = System.Windows.Media.SolidColorBrush;
+using System.Windows.Media;
 
 namespace IkoboostWpf.Views;
 
-/// <summary>
-/// Dialog de confirmation thémé, réutilisable dans toute l'application.
-///
-/// API statique :
-///   bool confirmed = ConfirmationDialog.Show("Titre", "Message", "Confirmer", isDanger: true);
-///   var (ok, restore) = ConfirmationDialog.ShowWithRestoreOption("Titre", "Message", items: list);
-/// </summary>
 public partial class ConfirmationDialog : Window
 {
-    private bool _confirmed;
-    private bool _createRestorePoint;
+    public bool? UserConfirmed { get; private set; }
+    public bool CreateRestorePoint => RestoreCheckBox.IsChecked == true;
 
-    // ── Constructeur (privé — utiliser les méthodes statiques) ───────────
-
-    private ConfirmationDialog(
-        string title,
-        string message,
-        string confirmLabel,
-        bool isDanger,
-        IEnumerable<string>? items,
-        bool showRestoreOption)
+    public ConfirmationDialog(string title, string message, string confirmText = "Confirmer",
+        bool isDanger = true, IEnumerable<string>? items = null, bool showRestoreOption = false)
     {
         InitializeComponent();
 
-        // Centrer sur la fenêtre principale
-        if (WpfApp.Current?.MainWindow is Window owner && !ReferenceEquals(owner, this))
-            Owner = owner;
-
         TitleText.Text = title;
         MessageText.Text = message;
-        ConfirmButton.Content = confirmLabel;
+        ConfirmButton.Content = confirmText;
 
-        ApplyIconStyle(isDanger);
-
-        ConfirmButton.Style = isDanger
-            ? (Style)FindResource("DangerButtonStyle")
-            : (Style)FindResource("PrimaryButtonStyle");
-
-        // Liste d'éléments
-        if (items != null)
+        if (isDanger)
         {
-            var list = items.ToList();
-            if (list.Count > 0)
-            {
-                ItemsList.ItemsSource = list;
-                ItemsBorder.Visibility = Visibility.Visible;
-            }
+            IconCircle.Background = new SolidColorBrush(Color.FromArgb(40, 251, 94, 99));
+            IconText.Text = "!";
+            IconText.Foreground = new SolidColorBrush(Color.FromRgb(251, 94, 99));
+        }
+        else
+        {
+            IconCircle.Background = new SolidColorBrush(Color.FromArgb(40, 47, 230, 242));
+            IconText.Text = "i";
+            IconText.Foreground = new SolidColorBrush(Color.FromRgb(47, 230, 242));
         }
 
-        // Checkbox point de restauration
+        if (items != null)
+        {
+            ItemsList.ItemsSource = items;
+            ItemsBorder.Visibility = Visibility.Visible;
+        }
+
         if (showRestoreOption)
             RestoreCheckBox.Visibility = Visibility.Visible;
     }
 
-    // ── Icône et couleurs ────────────────────────────────────────────────
-
-    private void ApplyIconStyle(bool isDanger)
-    {
-        WpfColor color;
-
-        if (isDanger)
-        {
-            IconText.Text = "✕";
-            color = (WpfApp.Current?.TryFindResource("ErrorBrush") as WpfSCBrush)?.Color
-                    ?? WpfColor.FromRgb(0xF8, 0x51, 0x49);
-        }
-        else
-        {
-            IconText.Text = "⚠";
-            color = (WpfApp.Current?.TryFindResource("WarningBrush") as WpfSCBrush)?.Color
-                    ?? WpfColor.FromRgb(0xD2, 0x99, 0x22);
-        }
-
-        // Cercle : couleur à 15 % d'opacité
-        IconCircle.Background = new WpfSCBrush(WpfColor.FromArgb(38, color.R, color.G, color.B));
-        // Icône : couleur pleine
-        IconText.Foreground = new WpfSCBrush(color);
-    }
-
-    // ── Handlers ─────────────────────────────────────────────────────────
-
-    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void Header_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         => DragMove();
-
-    private void Cancel_Click(object sender, RoutedEventArgs e)
-    {
-        _confirmed = false;
-        Close();
-    }
 
     private void Confirm_Click(object sender, RoutedEventArgs e)
     {
-        _confirmed = true;
-        _createRestorePoint = RestoreCheckBox.IsChecked == true;
+        UserConfirmed = true;
+        DialogResult = true;
         Close();
     }
 
-    // ── API publique statique ─────────────────────────────────────────────
-
-    /// <summary>
-    /// Affiche un dialog de confirmation thémé.
-    /// Retourne <c>true</c> si l'utilisateur a confirmé.
-    /// </summary>
-    /// <param name="isDanger"><c>true</c> → bouton rouge (Danger) ; <c>false</c> → bouton primary (Warning).</param>
-    public static bool Show(
-        string title,
-        string message,
-        string confirmLabel = "Confirmer",
-        bool isDanger = true,
-        IEnumerable<string>? items = null)
+    private void Cancel_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new ConfirmationDialog(title, message, confirmLabel, isDanger, items, false);
-        dlg.ShowDialog();
-        return dlg._confirmed;
-    }
-
-    /// <summary>
-    /// Affiche un dialog de confirmation avec checkbox « Créer un point de restauration ».
-    /// Retourne <c>(Confirmed, CreateRestorePoint)</c>.
-    /// </summary>
-    public static (bool Confirmed, bool CreateRestorePoint) ShowWithRestoreOption(
-        string title,
-        string message,
-        string confirmLabel = "Désinstaller",
-        IEnumerable<string>? items = null)
-    {
-        var dlg = new ConfirmationDialog(title, message, confirmLabel, true, items, true);
-        dlg.ShowDialog();
-        return (dlg._confirmed, dlg._createRestorePoint);
+        UserConfirmed = false;
+        DialogResult = false;
+        Close();
     }
 }

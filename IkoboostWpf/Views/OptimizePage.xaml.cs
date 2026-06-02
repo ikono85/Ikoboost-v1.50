@@ -1,16 +1,19 @@
-using IkoboostWpf.Services;
-using IkoboostWpf.ViewModels;
 using System.Windows.Controls;
+using IkoboostWpf.ViewModels;
 
 namespace IkoboostWpf.Views;
 
 public partial class OptimizePage : Page
 {
-    public OptimizePage(OptimizationService optimization, NetworkService network)
+    public OptimizePage(OptimizeViewModel vm)
     {
-        var vm = new OptimizationViewModel(optimization, network);
         InitializeComponent();
         DataContext = vm;
-        Unloaded += (_, _) => vm.Dispose();
+    }
+
+    private void Tab_Checked(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (DataContext is OptimizeViewModel vm && sender is RadioButton { Tag: string tab })
+            vm.SelectedOptimizationTab = tab;
     }
 }

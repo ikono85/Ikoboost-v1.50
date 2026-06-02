@@ -4,79 +4,346 @@
       Background="{DynamicResource BackgroundBrush}"
       Title="{DynamicResource Nav.Hardware}">
 
-  <DockPanel Margin="24">
+  <Page.Resources>
+    <Style x:Key="HardwareCard" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="16"/>
+    </Style>
 
-    <!-- Header -->
-    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16">
-<TextBlock Text="{DynamicResource Hardware.Title}" FontSize="22" FontWeight="SemiBold"
-                 Foreground="{DynamicResource TextPrimaryBrush}"/>
-      <TextBlock Text="{Binding StatusMessage}" FontSize="12"
-                 Foreground="{DynamicResource WarningBrush}" Margin="0,4,0,0"
-                 TextWrapping="Wrap"/>
-    </StackPanel>
+    <Style x:Key="HardwareSectionTitle" TargetType="TextBlock" BasedOn="{StaticResource SectionLabelStyle}">
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
 
-    <!-- Toolbar -->
-    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
-      <Button Content="{DynamicResource Common.Refresh}" Style="{StaticResource PrimaryButtonStyle}"
-              Command="{Binding RefreshCommand}"/>
-    </StackPanel>
+    <Style x:Key="HeaderCell" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/>
+      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="FontFamily" Value="Consolas"/>
+    </Style>
 
-    <!-- Sensor table -->
-    <DataGrid ItemsSource="{Binding Sensors}" IsReadOnly="True">
-      <DataGrid.Columns>
-        <DataGridTextColumn Header="{DynamicResource Hardware.Category}"  Binding="{Binding Category}" Width="130"/>
-        <DataGridTextColumn Header="{DynamicResource Hardware.Sensor}"    Binding="{Binding Name}"     Width="*"/>
-        <DataGridTextColumn Header="{DynamicResource Hardware.Reference}" Binding="{Binding Reference}" Width="220"/>
-        <DataGridTextColumn Header="{DynamicResource Common.Value}"       Binding="{Binding Value}"    Width="130"/>
-        <DataGridTemplateColumn Header="{DynamicResource Hardware.Level}" Width="100">
-          <DataGridTemplateColumn.CellTemplate>
-            <DataTemplate>
+    <Style x:Key="CellText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="SensorGrid" TargetType="DataGrid">
+      <Setter Property="AutoGenerateColumns" Value="False"/>
+      <Setter Property="CanUserAddRows" Value="False"/>
+      <Setter Property="CanUserDeleteRows" Value="False"/>
+      <Setter Property="CanUserResizeRows" Value="False"/>
+      <Setter Property="CanUserSortColumns" Value="False"/>
+      <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+      <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderBrush}"/>
+      <Setter Property="HeadersVisibility" Value="Column"/>
+      <Setter Property="IsReadOnly" Value="True"/>
+      <Setter Property="MinHeight" Value="72"/>
+      <Setter Property="RowHeight" Value="36"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+      <Setter Property="RowBackground" Value="Transparent"/>
+      <Setter Property="AlternatingRowBackground" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="ColumnHeaderStyle">
+        <Setter.Value>
+          <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="SeparatorVisibility" Value="Collapsed"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+          </Style>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="CellStyle">
+        <Setter.Value>
+          <Style TargetType="DataGridCell">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Template">
+              <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                  <Border Background="{TemplateBinding Background}"
+                          Padding="{TemplateBinding Padding}">
+                    <ContentPresenter VerticalAlignment="Center"/>
+                  </Border>
+                </ControlTemplate>
+              </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+              </Trigger>
+            </Style.Triggers>
+          </Style>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="RowStyle">
+        <Setter.Value>
+          <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Style.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+              </Trigger>
+            </Style.Triggers>
+          </Style>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Page.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="24,18,24,24">
+      <Grid Margin="0,0,0,16">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel>
+          <TextBlock Text="Materiel"
+                     FontSize="20"
+                     FontWeight="Bold"
+                     Foreground="{DynamicResource TextPrimaryBrush}"/>
+          <TextBlock Text="Capteurs temperature - ventilateurs - stockage"
+                     FontSize="11.5"
+                     FontFamily="Consolas"
+                     Foreground="{DynamicResource TextTertiaryBrush}"
+                     Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+          <Border CornerRadius="7"
+                  Padding="8,3"
+                  Background="#162FE6F2"
+                  BorderBrush="{DynamicResource AccentBrush}"
+                  BorderThickness="1"
+                  MinWidth="118"
+                  VerticalAlignment="Center"
+                  Margin="0,0,8,0">
+            <StackPanel Orientation="Horizontal">
+              <Ellipse Width="5" Height="5" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+              <TextBlock Text="{Binding SensorStatus}"
+                         Foreground="{DynamicResource AccentBrush}"
+                         FontSize="10.5"
+                         FontWeight="SemiBold"/>
+            </StackPanel>
+          </Border>
+
+          <Button Style="{StaticResource SecondaryButtonStyle}"
+                  Command="{Binding RefreshCommand}"
+                  Height="30"
+                  Padding="12,0">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,7,0"/>
+              <TextBlock Text="{DynamicResource Common.Refresh}" FontWeight="SemiBold"/>
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Grid>
+
+      <Border Style="{StaticResource HardwareCard}"
+              Padding="12"
+              Margin="0,0,0,14"
+              Background="{DynamicResource SurfaceAltBrush}"
+              Visibility="{Binding StatusMessage, Converter={StaticResource StringToVisConverter}}">
+        <TextBlock Text="{Binding StatusMessage}"
+                   FontSize="12"
+                   Foreground="{DynamicResource WarningBrush}"
+                   TextWrapping="Wrap"/>
+      </Border>
+
+      <ItemsControl ItemsSource="{Binding SummaryCards}" Margin="0,0,0,14">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Columns="4"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Style="{StaticResource HardwareCard}" Margin="0,0,10,0" MinHeight="96">
               <Grid>
-                <Button Content="{DynamicResource Hardware.Info}"
-                        Command="{Binding DataContext.OpenProductPageCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                        CommandParameter="{Binding}"
-                        Padding="8,2"
-                        HorizontalAlignment="Left">
-                  <Button.Style>
-                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-                      <Setter Property="Visibility" Value="Collapsed"/>
-                      <Style.Triggers>
-                        <DataTrigger Binding="{Binding HasProductInfo}" Value="True">
-                          <Setter Property="Visibility" Value="Visible"/>
-                        </DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </Button.Style>
-                </Button>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Text="{Binding Title}"
+                             Foreground="{DynamicResource AccentBrush}"
+                             FontSize="11"
+                             FontWeight="Bold"/>
+                  <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <TextBlock Text="{Binding Value}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontFamily="Consolas"
+                               FontSize="27"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding Unit}"
+                               Foreground="{Binding AccentBrush}"
+                               FontFamily="Consolas"
+                               FontSize="12"
+                               FontWeight="Bold"
+                               Margin="3,8,0,0"/>
+                  </StackPanel>
+                  <TextBlock Text="{Binding Subtitle}"
+                             Foreground="{DynamicResource TextTertiaryBrush}"
+                             FontFamily="Consolas"
+                             FontSize="10.5"
+                             TextTrimming="CharacterEllipsis"
+                             Margin="0,7,28,0"/>
+                </StackPanel>
 
-                <TextBlock Text="{Binding Level}">
-                  <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                      <Setter Property="Visibility" Value="Visible"/>
-                      <Style.Triggers>
-                        <DataTrigger Binding="{Binding HasProductInfo}" Value="True">
-                          <Setter Property="Visibility" Value="Collapsed"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Level}" Value="Critical">
-                          <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
-                          <Setter Property="FontWeight" Value="SemiBold"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Level}" Value="Warning">
-                          <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Level}" Value="Normal">
-                          <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
-                        </DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </TextBlock.Style>
-                </TextBlock>
+                <Border Grid.Column="1"
+                        Width="24"
+                        Height="24"
+                        CornerRadius="6"
+                        Background="{Binding BackgroundBrush}"
+                        VerticalAlignment="Top">
+                  <TextBlock Text="{Binding Glyph}"
+                             FontFamily="Segoe MDL2 Assets"
+                             Foreground="{Binding AccentBrush}"
+                             FontSize="12"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center"/>
+                </Border>
               </Grid>
-            </DataTemplate>
-          </DataGridTemplateColumn.CellTemplate>
-        </DataGridTemplateColumn>
-      </DataGrid.Columns>
-    </DataGrid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
 
-  </DockPanel>
+      <Border Style="{StaticResource HardwareCard}" Padding="14" Background="Transparent" BorderThickness="0">
+        <StackPanel>
+          <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="CAPTEURS MATERIELS" Style="{StaticResource HardwareSectionTitle}"/>
+            <TextBlock Grid.Column="1"
+                       Text="{Binding SensorCountText}"
+                       Foreground="{DynamicResource TextTertiaryBrush}"
+                       FontFamily="Consolas"
+                       FontSize="11"/>
+          </Grid>
+
+          <ItemsControl ItemsSource="{Binding SensorGroups}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="0,0,0,14">
+                  <TextBlock Text="{Binding Name}" Style="{StaticResource HardwareSectionTitle}"/>
+
+                  <DataGrid ItemsSource="{Binding Items}" Style="{StaticResource SensorGrid}">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Header="CAPTEUR" Width="2*">
+                        <DataGridTemplateColumn.HeaderTemplate>
+                          <DataTemplate><TextBlock Text="CAPTEUR" Style="{StaticResource HeaderCell}"/></DataTemplate>
+                        </DataGridTemplateColumn.HeaderTemplate>
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <TextBlock Text="{Binding Name}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+
+                      <DataGridTemplateColumn Header="REFERENCE" Width="3*">
+                        <DataGridTemplateColumn.HeaderTemplate>
+                          <DataTemplate><TextBlock Text="REFERENCE" Style="{StaticResource HeaderCell}"/></DataTemplate>
+                        </DataGridTemplateColumn.HeaderTemplate>
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <TextBlock Text="{Binding Reference}"
+                                       Style="{StaticResource CellText}"
+                                       TextTrimming="CharacterEllipsis"/>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+
+                      <DataGridTemplateColumn Header="VALEUR" Width="3*">
+                        <DataGridTemplateColumn.HeaderTemplate>
+                          <DataTemplate><TextBlock Text="VALEUR" Style="{StaticResource HeaderCell}"/></DataTemplate>
+                        </DataGridTemplateColumn.HeaderTemplate>
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Grid>
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="94"/>
+                                <ColumnDefinition Width="*"/>
+                              </Grid.ColumnDefinitions>
+                              <TextBlock Text="{Binding Value}"
+                                         Foreground="{Binding AccentBrush}"
+                                         FontFamily="Consolas"
+                                         FontSize="12"
+                                         FontWeight="Bold"
+                                         VerticalAlignment="Center"/>
+                              <ProgressBar Grid.Column="1"
+                                           Value="{Binding ValuePercent}"
+                                           Maximum="100"
+                                           Foreground="{Binding AccentBrush}"
+                                           Height="5"
+                                           VerticalAlignment="Center"
+                                           Margin="6,0,26,0"/>
+                            </Grid>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+
+                      <DataGridTemplateColumn Header="ETAT" Width="140">
+                        <DataGridTemplateColumn.HeaderTemplate>
+                          <DataTemplate>
+                            <TextBlock Text="ETAT" Style="{StaticResource HeaderCell}" HorizontalAlignment="Right"/>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.HeaderTemplate>
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Grid>
+                              <Border CornerRadius="7"
+                                      Padding="8,3"
+                                      Background="{Binding LevelBackground}"
+                                      BorderBrush="{Binding LevelBrush}"
+                                      BorderThickness="1"
+                                      MinWidth="70"
+                                      HorizontalAlignment="Right">
+                                <StackPanel Orientation="Horizontal">
+                                  <Ellipse Width="4" Height="4" Fill="{Binding LevelBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                  <TextBlock Text="{Binding Level}"
+                                             Foreground="{Binding LevelBrush}"
+                                             FontSize="10.5"
+                                             FontWeight="SemiBold"/>
+                                </StackPanel>
+                              </Border>
+                            </Grid>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
 </Page>
