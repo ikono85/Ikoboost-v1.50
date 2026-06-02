@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Management;
 using IkoboostWpf.Models;
 
@@ -63,7 +64,7 @@ public sealed class SensorModule : IDisposable
             foreach (ManagementObject obj in searcher.Get())
             {
                 var raw = Convert.ToDouble(obj["CurrentTemperature"]);
-                var celsius = (raw - 2732.0) / 10.0;
+                var celsius = (float)((raw - 2732.0) / 10.0);
                 if (celsius is <= 0 or >= 130) continue;
                 list.Add(new HardwareSensorReading
                 {
@@ -102,7 +103,7 @@ public sealed class SensorModule : IDisposable
             var parts = output.Split(',');
             if (parts.Length < 2) return;
 
-            if (double.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float,
+            if (float.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture, out var temp) && temp > 0)
             {
                 list.Add(new HardwareSensorReading
@@ -118,7 +119,7 @@ public sealed class SensorModule : IDisposable
                 });
             }
 
-            if (double.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float,
+            if (float.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture, out var load) && load >= 0)
             {
                 list.Add(new HardwareSensorReading
@@ -145,10 +146,10 @@ public sealed class SensorModule : IDisposable
         {
             using var searcher = new ManagementObjectSearcher(
                 "SELECT UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine WHERE EngineType LIKE '%3D%'");
-            double maxLoad = 0;
+            float maxLoad = 0;
             foreach (ManagementObject obj in searcher.Get())
             {
-                var val = Convert.ToDouble(obj["UtilizationPercentage"] ?? 0);
+                var val = (float)Convert.ToDouble(obj["UtilizationPercentage"] ?? 0);
                 if (val > maxLoad) maxLoad = val;
             }
             if (maxLoad > 0)
@@ -177,8 +178,8 @@ public sealed class SensorModule : IDisposable
             obj.Get();
             var totalKb = Convert.ToDouble(obj["TotalVisibleMemorySize"]);
             var freeKb = Convert.ToDouble(obj["FreePhysicalMemory"]);
-            var usedGb = (totalKb - freeKb) / 1024.0 / 1024.0;
-            var freeGb = freeKb / 1024.0 / 1024.0;
+            var usedGb = (float)((totalKb - freeKb) / 1024.0 / 1024.0);
+            var freeGb = (float)(freeKb / 1024.0 / 1024.0);
 
             list.Add(new HardwareSensorReading
             {
