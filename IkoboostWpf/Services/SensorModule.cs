@@ -1,32 +1,19 @@
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Management;
 using IkoboostWpf.Models;
-using LibreHardwareMonitor.Hardware;
 
 namespace IkoboostWpf.Services;
 
+// Reads hardware sensors using only Windows-native APIs (WMI ACPI + nvidia-smi).
+// No third-party dependencies required.
 public sealed class SensorModule : IDisposable
 {
-    private readonly Computer _computer;
     private readonly object _sync = new();
     private List<HardwareSensorReading> _lastReadings = [];
     private DateTime _lastUpdate = DateTime.MinValue;
-    private bool _disposed;
     private bool _loggedNoTemperatureSensors;
-
-    public SensorModule()
-    {
-        _computer = new Computer
-        {
-            IsCpuEnabled = true,
-            IsGpuEnabled = true,
-            IsMemoryEnabled = true,
-            IsMotherboardEnabled = true,
-            IsControllerEnabled = true,
-            IsStorageEnabled = true,
-        };
-
-        try { _computer.Open(); }
-        catch (Exception ex) { AppLog.Error("SensorModule.Open", ex); }
-    }
+    private readonly string? _nvidiaSmiPath = FindNvidiaSmi();
 
     public IReadOnlyList<HardwareSensorReading> GetReadings(bool force = false)
     {
@@ -34,7 +21,6 @@ public sealed class SensorModule : IDisposable
         {
             if (!force && DateTime.Now - _lastUpdate < TimeSpan.FromMilliseconds(800))
                 return _lastReadings;
-
             _lastReadings = ReadSensors();
             _lastUpdate = DateTime.Now;
             return _lastReadings;
@@ -50,139 +36,184 @@ public sealed class SensorModule : IDisposable
             .FirstOrDefault();
 
     public HardwareSensorReading? FindById(string id) =>
-        GetReadings()
-            .FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase) && s.Value > 0);
+        GetReadings().FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase) && s.Value > 0);
 
     private List<HardwareSensorReading> ReadSensors()
     {
         var list = new List<HardwareSensorReading>();
-        try
-        {
-            foreach (var hardware in _computer.Hardware)
-            {
-                UpdateHardware(hardware);
-                ReadHardwareSensors(hardware, list);
-            }
-        }
-        catch (Exception ex)
-        {
-            AppLog.Error("SensorModule.ReadSensors", ex);
-        }
+        ReadCpuTemperatures(list);
+        ReadGpuNvidia(list);
+        ReadGpuLoadWmi(list);
+        ReadRamUsage(list);
 
-        if (!list.Any(s => s.Unit == "\u00B0C") && !_loggedNoTemperatureSensors)
+        if (!list.Any(s => s.Unit == "°C") && !_loggedNoTemperatureSensors)
         {
             _loggedNoTemperatureSensors = true;
-            var sample = string.Join(" | ", list.Take(12)
-                .Select(s => $"{s.Type}/{s.Name}/{s.Unit}/{s.Value:F1}"));
-            var raw = string.Join(" | ", _computer.Hardware.Select(h =>
-                $"{h.HardwareType}:{h.Name} sensors={h.Sensors.Length} sub={h.SubHardware.Length}"));
-            AppLog.Warning("SensorModule", $"Aucun capteur temperature detecte. Capteurs lus: {list.Count}. {sample}. Hardware: {raw}");
+            AppLog.Warning("SensorModule", $"Aucun capteur temperature detecte. {list.Count} capteurs lus.");
         }
-
         return list;
     }
 
-    private static void UpdateHardware(IHardware hardware)
+    private static void ReadCpuTemperatures(List<HardwareSensorReading> list)
     {
         try
         {
-            hardware.Update();
-            foreach (var subHardware in hardware.SubHardware)
-                UpdateHardware(subHardware);
+            using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM MSAcpi_ThermalZoneTemperature");
+            int index = 0;
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                var raw = Convert.ToDouble(obj["CurrentTemperature"]);
+                var celsius = (raw - 2732.0) / 10.0;
+                if (celsius is <= 0 or >= 130) continue;
+                list.Add(new HardwareSensorReading
+                {
+                    Id = $"cpu-temp-{index}",
+                    Type = "CPU",
+                    Name = index == 0 ? "CPU Package" : $"Zone {index + 1}",
+                    HardwareName = "ACPI",
+                    HardwareType = "Cpu",
+                    Value = celsius,
+                    Unit = "°C",
+                    Timestamp = DateTime.Now,
+                });
+                index++;
+            }
         }
-        catch (Exception ex)
-        {
-            AppLog.Error("SensorModule.UpdateHardware", ex);
-        }
+        catch (Exception ex) { AppLog.Error("SensorModule.ReadCpuTemperatures", ex); }
     }
 
-    private static void ReadHardwareSensors(IHardware hardware, List<HardwareSensorReading> list)
+    private void ReadGpuNvidia(List<HardwareSensorReading> list)
     {
-        foreach (var sensor in hardware.Sensors)
+        if (_nvidiaSmiPath == null) return;
+        try
         {
-            if (sensor.Value is not { } value || value <= 0) continue;
-            if (!IsSupportedSensor(sensor.SensorType)) continue;
+            var psi = new ProcessStartInfo(_nvidiaSmiPath,
+                "--query-gpu=temperature.gpu,utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var proc = Process.Start(psi);
+            if (proc == null) return;
+            var output = proc.StandardOutput.ReadToEnd().Trim();
+            proc.WaitForExit(3000);
 
-            var type = MapHardwareType(hardware.HardwareType);
-            if (type == "Other") continue;
+            var parts = output.Split(',');
+            if (parts.Length < 2) return;
+
+            if (double.TryParse(parts[0].Trim(), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var temp) && temp > 0)
+            {
+                list.Add(new HardwareSensorReading
+                {
+                    Id = "gpu-temp-0",
+                    Type = "GPU",
+                    Name = "GPU Core",
+                    HardwareName = "NVIDIA GPU",
+                    HardwareType = "GpuNvidia",
+                    Value = temp,
+                    Unit = "°C",
+                    Timestamp = DateTime.Now,
+                });
+            }
+
+            if (double.TryParse(parts[1].Trim(), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var load) && load >= 0)
+            {
+                list.Add(new HardwareSensorReading
+                {
+                    Id = "gpu-load-0",
+                    Type = "GPU",
+                    Name = "GPU Core",
+                    HardwareName = "NVIDIA GPU",
+                    HardwareType = "GpuNvidia",
+                    Value = load,
+                    Unit = "%",
+                    Timestamp = DateTime.Now,
+                });
+            }
+        }
+        catch (Exception ex) { AppLog.Error("SensorModule.ReadGpuNvidia", ex); }
+    }
+
+    // Fallback GPU load via Windows performance counters (works for AMD/Intel GPU too)
+    private static void ReadGpuLoadWmi(List<HardwareSensorReading> list)
+    {
+        if (list.Any(s => s.Id == "gpu-load-0")) return;
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(
+                "SELECT UtilizationPercentage FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine WHERE EngineType LIKE '%3D%'");
+            double maxLoad = 0;
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                var val = Convert.ToDouble(obj["UtilizationPercentage"] ?? 0);
+                if (val > maxLoad) maxLoad = val;
+            }
+            if (maxLoad > 0)
+            {
+                list.Add(new HardwareSensorReading
+                {
+                    Id = "gpu-load-0",
+                    Type = "GPU",
+                    Name = "GPU Core",
+                    HardwareName = "GPU",
+                    HardwareType = "Gpu",
+                    Value = maxLoad,
+                    Unit = "%",
+                    Timestamp = DateTime.Now,
+                });
+            }
+        }
+        catch { }
+    }
+
+    private static void ReadRamUsage(List<HardwareSensorReading> list)
+    {
+        try
+        {
+            using var obj = new ManagementObject("win32_operatingsystem=@");
+            obj.Get();
+            var totalKb = Convert.ToDouble(obj["TotalVisibleMemorySize"]);
+            var freeKb = Convert.ToDouble(obj["FreePhysicalMemory"]);
+            var usedGb = (totalKb - freeKb) / 1024.0 / 1024.0;
+            var freeGb = freeKb / 1024.0 / 1024.0;
 
             list.Add(new HardwareSensorReading
             {
-                Id = BuildId(type, sensor),
-                Type = type,
-                Name = sensor.Name,
-                HardwareName = hardware.Name,
-                HardwareType = hardware.HardwareType.ToString(),
-                Value = value,
-                Unit = UnitFor(sensor.SensorType),
+                Id = "ram-data-memory-used",
+                Type = "RAM",
+                Name = "Memory Used",
+                HardwareName = "RAM",
+                HardwareType = "Memory",
+                Value = usedGb,
+                Unit = "GB",
+                Timestamp = DateTime.Now,
+            });
+            list.Add(new HardwareSensorReading
+            {
+                Id = "ram-data-memory-available",
+                Type = "RAM",
+                Name = "Memory Available",
+                HardwareName = "RAM",
+                HardwareType = "Memory",
+                Value = freeGb,
+                Unit = "GB",
                 Timestamp = DateTime.Now,
             });
         }
-
-        foreach (var subHardware in hardware.SubHardware)
-            ReadHardwareSensors(subHardware, list);
+        catch (Exception ex) { AppLog.Error("SensorModule.ReadRamUsage", ex); }
     }
 
-    private static bool IsSupportedSensor(SensorType type) => type is
-        SensorType.Temperature or
-        SensorType.Load or
-        SensorType.Data or
-        SensorType.Fan or
-        SensorType.Power;
-
-    private static string MapHardwareType(HardwareType type) => type switch
+    private static string? FindNvidiaSmi()
     {
-        HardwareType.Cpu => "CPU",
-        HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel => "GPU",
-        HardwareType.Memory => "RAM",
-        HardwareType.Motherboard or HardwareType.SuperIO => "MOTHERBOARD",
-        HardwareType.Storage => "STORAGE",
-        _ => "Other",
-    };
-
-    private static string UnitFor(SensorType type) => type switch
-    {
-        SensorType.Temperature => "\u00B0C",
-        SensorType.Load => "%",
-        SensorType.Data => "GB",
-        SensorType.Fan => "RPM",
-        SensorType.Power => "W",
-        _ => "",
-    };
-
-    private static string BuildId(string type, ISensor sensor)
-    {
-        var sensorKind = sensor.SensorType switch
+        var paths = new[]
         {
-            SensorType.Temperature => "temp",
-            SensorType.Load => "load",
-            SensorType.Data => "data",
-            SensorType.Fan => "fan",
-            SensorType.Power => "power",
-            _ => "sensor",
+            @"C:\Windows\System32\nvidia-smi.exe",
+            @"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe",
         };
-
-        if (type == "RAM" && sensor.SensorType == SensorType.Data)
-        {
-            var normalizedName = NormalizeSensorName(sensor.Name);
-            return $"ram-data-{normalizedName}";
-        }
-
-        return $"{type.ToLowerInvariant()}-{sensorKind}-{sensor.Index}";
-    }
-
-    private static string NormalizeSensorName(string name)
-    {
-        var chars = name
-            .Trim()
-            .ToLowerInvariant()
-            .Select(c => char.IsLetterOrDigit(c) ? c : '-')
-            .ToArray();
-
-        var normalized = new string(chars);
-        while (normalized.Contains("--", StringComparison.Ordinal))
-            normalized = normalized.Replace("--", "-", StringComparison.Ordinal);
-        return normalized.Trim('-');
+        return paths.FirstOrDefault(File.Exists);
     }
 
     private static int ScoreSensorName(string name)
@@ -190,15 +221,8 @@ public sealed class SensorModule : IDisposable
         var n = name.ToLowerInvariant();
         if (n.Contains("package") || n.Contains("core") || n.Contains("gpu core")) return 100;
         if (n.Contains("cpu") || n.Contains("gpu")) return 80;
-        if (n.Contains("hot spot") || n.Contains("hotspot")) return 70;
         return 0;
     }
 
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        try { _computer.Close(); }
-        catch { }
-    }
+    public void Dispose() { }
 }

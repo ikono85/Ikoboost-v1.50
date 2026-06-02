@@ -163,7 +163,7 @@ public sealed class SystemMonitorService : IDisposable
         try { CpuPercent = Math.Round(_cpuCounter?.NextValue() ?? 0, 1); } catch { }
 
         var sensors = _sensorModule.GetReadings();
-        ApplyLibreHardwareMonitorReadings(sensors);
+        ApplySensorReadings(sensors);
 
         try
         {
@@ -192,7 +192,7 @@ public sealed class SystemMonitorService : IDisposable
         DataUpdated?.Invoke();
     }
 
-    private void ApplyLibreHardwareMonitorReadings(IReadOnlyList<HardwareSensorReading> sensors)
+    private void ApplySensorReadings(IReadOnlyList<HardwareSensorReading> sensors)
     {
         var cpuTemp = sensors
             .Where(s => s.Unit == "\u00B0C" && (s.Type == "CPU" || LooksLikeCpuTemperature(s)))
@@ -201,7 +201,7 @@ public sealed class SystemMonitorService : IDisposable
         if (cpuTemp != null)
         {
             CpuTempText = $"{cpuTemp.Value:F0}\u00B0C";
-            CpuTempDiagnostic = $"LibreHardwareMonitor: {cpuTemp.HardwareName} / {cpuTemp.Name}";
+            CpuTempDiagnostic = $"{cpuTemp.HardwareName} / {cpuTemp.Name}";
         }
 
         var gpuTemp = sensors.FirstOrDefault(s => s.Id == "gpu-temp-0")
@@ -336,7 +336,7 @@ public sealed class SystemMonitorService : IDisposable
         }
 
         CpuTempText = "N/A";
-        CpuTempDiagnostic = "Aucun capteur temperature CPU expose par LibreHardwareMonitor/WMI";
+        CpuTempDiagnostic = "Aucun capteur temperature CPU detecte via WMI/ACPI";
         if (!_loggedTemperatureUnavailable)
         {
             _loggedTemperatureUnavailable = true;
